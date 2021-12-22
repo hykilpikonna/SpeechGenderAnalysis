@@ -145,6 +145,31 @@ def draw_result(file: str, result: Result):
     return to_wav(file, wav_callback)
 
 
+def get_result_percentages(result: Result) -> tuple[float, float, float]:
+    """
+    Get percentages
+
+    :param result: Result
+    :return: %male, %female, %other
+    """
+    # Count total and categorical durations
+    total_dur = 0
+    durations: dict[str, int] = {f.gender: 0 for f in result.frames}
+    for f in result.frames:
+        dur = f.end - f.start
+        durations[f.gender] += dur
+        total_dur += dur
+
+    # Convert durations to ratios
+    for d in durations:
+        durations[d] /= total_dur
+
+    # Return results
+    m = durations['male']
+    f = durations['female']
+    return m, f, 1 - m - f
+
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     if len(args) < 0:
