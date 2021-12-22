@@ -1,9 +1,12 @@
 from __future__ import annotations
+
+import io
 import os
 import sys
 import tempfile
 import time
 import wave
+from PIL import Image
 from subprocess import Popen, PIPE
 from typing import NamedTuple, Callable
 
@@ -93,6 +96,12 @@ def to_wav(file: str, callback: Callable, start_sec: float = 0, stop_sec: float 
         return callback(tmp_wav)
 
 
+def show_image_buffer(buf):
+    im = Image.open(buf)
+    im.show()
+    buf.close()
+
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     if len(args) < 0:
@@ -133,10 +142,12 @@ if __name__ == '__main__':
             color = colors[r.gender] if r.gender in colors else colors['default']
             ax.axvspan(r.start, r.end - 0.01, alpha=.5, color=color)
 
-        # Export
+        # Savefig to bytes
+        buf = io.BytesIO()
         plt.axis('off')
-        plt.savefig('../image.png', bbox_inches='tight', pad_inches=0, transparent=False)
-
+        plt.savefig(buf, bbox_inches='tight', pad_inches=0, transparent=False)
+        buf.seek(0)
+        return buf
 
     to_wav('../test.mp3', wav_callback)
 
