@@ -117,3 +117,6 @@ dmypy.json
 # Custom
 .idea
 ._*
+voice-bot-token.txt
+audio_tmp
+src/voice-bot-token.txt

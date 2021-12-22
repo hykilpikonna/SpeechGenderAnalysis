@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import shutil
 import sys
 import tempfile
 import time
@@ -62,7 +63,7 @@ def process(self: Segmenter, inp: list[str], tmpdir=None, verbose=False, skip_if
             break
         mspec, loge, diff_len = feats
         lseg = self.segment_feats(mspec, loge, diff_len, 0)
-        results.append(Result(lseg, inp[len(lmsg) - 1]))
+        results.append(Result([ResultFrame(*s) for s in lseg], inp[len(lmsg) - 1]))
 
     t_batch_dur = time.time() - t_batch_start
     nb_processed = len([e for e in lmsg if e[1] == 0])
@@ -92,6 +93,8 @@ def to_wav(file: str, callback: Callable, start_sec: float = 0, stop_sec: float 
         p = Popen(args, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
         assert p.returncode == 0, error
+
+        shutil.copy2(tmp_wav, './test_leohearts.wav')
 
         return callback(tmp_wav)
 
@@ -130,7 +133,7 @@ def draw_result(file: str, result: Result):
         ax.set_xlim([result.frames[0].start, result.frames[-1].end])
 
         # Draw segmentation areas
-        colors = {'female': '#F5A9B8', 'male': '#5BCEFA', 'default': 'white'}
+        colors = {'female': '#F5A9B8', 'male': '#5BCEFA', 'default': 'gray'}
         for r in result.frames:
             color = colors[r.gender] if r.gender in colors else colors['default']
             ax.axvspan(r.start, r.end - 0.01, alpha=.5, color=color)
@@ -140,6 +143,8 @@ def draw_result(file: str, result: Result):
         plt.axis('off')
         plt.savefig(buf, bbox_inches='tight', pad_inches=0, transparent=False)
         buf.seek(0)
+        plt.clf()
+        plt.close()
         return buf
 
     return to_wav(file, wav_callback)
@@ -165,27 +170,26 @@ def get_result_percentages(result: Result) -> tuple[float, float, float]:
         durations[d] /= total_dur
 
     # Return results
-    f = durations['female']
-    m = durations['male']
+    f = durations.get('female', 0)
+    m = durations.get('male', 0)
     return f, m, 1 - f - m
 
 
+# def test():
+#     results: BatchResults = BatchResults(
+#         [Result([ResultFrame('female', 0.0, 10.48), ResultFrame('male', 10.48, 12.780000000000001)],
+#                 '../test.csv')],
+#         1.7032792568206787, 1.7032792568206787, 1,
+#         [('../test.csv', 0)])
+#
+#     with draw_result('../test.mp3', results.results[0]) as buf:
+#         show_image_buffer(buf)
+#         print(get_result_percentages(results.results[0]))
+#
+#     # seg = Segmenter()
+#     # print(process(seg, ['../test.mp3']))
+
 if __name__ == '__main__':
-    args = sys.argv[1:]
-    if len(args) < 0:
-        exit(0)
-
-    results: BatchResults = BatchResults(
-        [Result([ResultFrame('female', 0.0, 10.48), ResultFrame('male', 10.48, 12.780000000000001)],
-                '../test.csv')],
-        1.7032792568206787, 1.7032792568206787, 1,
-        [('../test.csv', 0)])
-
-    with draw_result('../test.mp3', results.results[0]) as buf:
-        show_image_buffer(buf)
-        print(get_result_percentages(results.results[0]))
-
-    # inp = args[0]
-
-    # seg = Segmenter()
-    # print(process(seg, ['../test.mp3']))
+    to_wav('../audio_tmp/2021-12-22 05-32 leph1art5.mp3', print)
+    # test()
+    pass

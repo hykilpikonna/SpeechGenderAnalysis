@@ -2,3 +2,5 @@
 tensorflow==2.2.0
 plaidml-keras==0.7.0
 inaSpeechSegmenter==0.6.8
+
+python-telegram-bot
