@@ -150,7 +150,7 @@ def get_result_percentages(result: Result) -> tuple[float, float, float]:
     Get percentages
 
     :param result: Result
-    :return: %male, %female, %other
+    :return: %female, %male, %other
     """
     # Count total and categorical durations
     total_dur = 0
@@ -165,9 +165,9 @@ def get_result_percentages(result: Result) -> tuple[float, float, float]:
         durations[d] /= total_dur
 
     # Return results
-    m = durations['male']
     f = durations['female']
-    return m, f, 1 - m - f
+    m = durations['male']
+    return f, m, 1 - f - m
 
 
 if __name__ == '__main__':
@@ -183,6 +183,7 @@ if __name__ == '__main__':
 
     with draw_result('../test.mp3', results.results[0]) as buf:
         show_image_buffer(buf)
+        print(get_result_percentages(results.results[0]))
 
     # inp = args[0]
 
