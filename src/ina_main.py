@@ -102,21 +102,14 @@ def show_image_buffer(buf):
     buf.close()
 
 
-if __name__ == '__main__':
-    args = sys.argv[1:]
-    if len(args) < 0:
-        exit(0)
+def draw_result(file: str, result: Result):
+    """
+    Draw segmentation result
 
-    results: BatchResults = BatchResults(
-        [Result([ResultFrame('female', 0.0, 10.48), ResultFrame('male', 10.48, 12.780000000000001)],
-                '../test.csv')],
-        1.7032792568206787, 1.7032792568206787, 1,
-        [('../test.csv', 0)])
-
-    result = results.results[0]
-
-    # inp = args[0]
-
+    :param file: Audio file
+    :param result: Segmentation result
+    :return: Result image in bytes (please close it after use)
+    """
     def wav_callback(wavfile: str):
         sample_rate, audio = scipy.io.wavfile.read(wavfile)
         _time = np.linspace(0, len(audio) / sample_rate, num=len(audio))
@@ -149,7 +142,24 @@ if __name__ == '__main__':
         buf.seek(0)
         return buf
 
-    to_wav('../test.mp3', wav_callback)
+    return to_wav(file, wav_callback)
+
+
+if __name__ == '__main__':
+    args = sys.argv[1:]
+    if len(args) < 0:
+        exit(0)
+
+    results: BatchResults = BatchResults(
+        [Result([ResultFrame('female', 0.0, 10.48), ResultFrame('male', 10.48, 12.780000000000001)],
+                '../test.csv')],
+        1.7032792568206787, 1.7032792568206787, 1,
+        [('../test.csv', 0)])
+
+    with draw_result('../test.mp3', results.results[0]) as buf:
+        show_image_buffer(buf)
+
+    # inp = args[0]
 
     # seg = Segmenter()
     # print(process(seg, ['../test.mp3']))
