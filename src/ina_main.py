@@ -10,7 +10,7 @@ from typing import NamedTuple, Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io.wavfile
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure, Axes
 from numpy import ndarray
 
 os.environ['KERAS_BACKEND'] = "plaidml.keras.backend"
@@ -105,20 +105,21 @@ if __name__ == '__main__':
         sample_rate, audio = scipy.io.wavfile.read(wavfile)
         _time = np.linspace(0, len(audio) / sample_rate, num=len(audio))
 
-        cutoff = min(abs(min(audio)), abs(max(audio)))
-
-        plt.plot(_time, audio)
-        # plt.ylabel("Amplitude")
-        # plt.xlabel("Time")
-        # plt.title("Sample Wav")
-
         fig: Figure = plt.gcf()
+        ax: Axes = plt.gca()
+
+        # Plot audio
+        plt.plot(_time, audio)
+
+        # Set size
         fig.set_size_inches(10, 1)
         fig.set_dpi(200)
 
-        ax = plt.gca()
+        # Cutoff frequency so that the plot looks centered
+        cutoff = min(abs(min(audio)), abs(max(audio)))
         ax.set_ylim([-cutoff, cutoff])
 
+        # Export
         plt.axis('off')
         plt.savefig('../image.png', bbox_inches='tight', pad_inches=0, transparent=True)
 
