@@ -98,6 +98,13 @@ if __name__ == '__main__':
     if len(args) < 0:
         exit(0)
 
+    results: BatchResults = BatchResults(
+        [Result([ResultFrame('female', 0.0, 10.48), ResultFrame('male', 10.48, 12.780000000000001)],
+                '../test.csv')],
+        1.7032792568206787, 1.7032792568206787, 1,
+        [('../test.csv', 0)])
+
+    result = results.results[0]
 
     # inp = args[0]
 
@@ -109,26 +116,29 @@ if __name__ == '__main__':
         ax: Axes = plt.gca()
 
         # Plot audio
-        plt.plot(_time, audio)
+        plt.plot(_time, audio, color='white')
 
         # Set size
-        fig.set_size_inches(10, 1)
-        fig.set_dpi(200)
+        # fig.set_dpi(400)
+        fig.set_size_inches(18, 6)
 
         # Cutoff frequency so that the plot looks centered
         cutoff = min(abs(min(audio)), abs(max(audio)))
         ax.set_ylim([-cutoff, cutoff])
+        ax.set_xlim([result.frames[0].start, result.frames[-1].end])
+
+        # Draw segmentation areas
+        colors = {'female': '#F5A9B8', 'male': '#5BCEFA', 'default': 'white'}
+        for r in result.frames:
+            color = colors[r.gender] if r.gender in colors else colors['default']
+            ax.axvspan(r.start, r.end - 0.01, alpha=.5, color=color)
 
         # Export
         plt.axis('off')
-        plt.savefig('../image.png', bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.savefig('../image.png', bbox_inches='tight', pad_inches=0, transparent=False)
 
 
     to_wav('../test.mp3', wav_callback)
 
     # seg = Segmenter()
     # print(process(seg, ['../test.mp3']))
-    a = (
-        [([('female', 0.0, 10.48), ('male', 10.48, 12.780000000000001)], '../test.csv')],
-        1.7032792568206787, 1, 1.7032792568206787,
-        [('../test.csv', 0, 'ok 1.4748258590698242')])
