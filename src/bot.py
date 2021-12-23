@@ -51,7 +51,10 @@ def process_audio(message: Message):
     # Draw results
     with draw_result(str(file), result) as buf:
         f, m, o = get_result_percentages(result)
-        msg = f"分析结果: {f*100:.0f}% 🙋‍♀️ | {m*100:.0f}% 🙋‍♂️ | {o*100:.0f}% 🚫"
+        msg = f"分析结果: {f*100:.0f}% 🙋‍♀️ | {m*100:.0f}% 🙋‍♂️ | {o*100:.0f}% 🚫\n" \
+              f"(结果仅供参考, 如果结果不是你想要的，那就是模型的问题，欢迎反馈)\n" \
+              f"" \
+              f"(因为这个模型基于法语数据, 和中文发音习惯有差异, 所以这个识别结果可能不准)"
         bot.send_photo(message.chat_id, photo=buf, caption=msg,
                        reply_to_message_id=message.message_id)
 

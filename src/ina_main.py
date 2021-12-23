@@ -7,6 +7,8 @@ import sys
 import tempfile
 import time
 import wave
+from dataclasses import dataclass
+
 from PIL import Image
 from subprocess import Popen, PIPE
 from typing import NamedTuple, Callable
@@ -93,8 +95,6 @@ def to_wav(file: str, callback: Callable, start_sec: float = 0, stop_sec: float 
         p = Popen(args, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
         assert p.returncode == 0, error
-
-        shutil.copy2(tmp_wav, './test_leohearts.wav')
 
         return callback(tmp_wav)
 
@@ -190,6 +190,6 @@ def get_result_percentages(result: Result) -> tuple[float, float, float]:
 #     # print(process(seg, ['../test.mp3']))
 
 if __name__ == '__main__':
-    to_wav('../audio_tmp/2021-12-22 05-32 leph1art5.mp3', print)
+    # to_wav('../audio_tmp/2021-12-22 05-32 leph1art5.mp3', print)
     # test()
     pass
