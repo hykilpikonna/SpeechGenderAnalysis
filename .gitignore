@@ -120,3 +120,5 @@ dmypy.json
 voice-bot-token.txt
 audio_tmp
 src/voice-bot-token.txt
+venv8
+venv9
