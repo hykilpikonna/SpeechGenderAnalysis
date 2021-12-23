@@ -14,7 +14,7 @@ source venv8/bin/activate
 2. Install dependencies:
 
 ```sh
-pip3 install -r requirements.txt
+pip3 install -r requirements-mac.txt
 ```
 
 3. Configure `plaidml` to use GPU:
