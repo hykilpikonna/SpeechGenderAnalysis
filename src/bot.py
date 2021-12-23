@@ -1,17 +1,12 @@
-import os
+import warnings
 from datetime import datetime
 from pathlib import Path
+
 from telegram import Update, Message
 from telegram.ext import Updater, CallbackContext, Dispatcher, CommandHandler, MessageHandler, \
     Filters
 
-os.environ['KERAS_BACKEND'] = "plaidml.keras.backend"
-
-import keras
-
-from inaSpeechSegmenter import *
 from ina_main import *
-import warnings
 
 warnings.filterwarnings("ignore")
 

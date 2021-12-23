@@ -2,31 +2,19 @@ from __future__ import annotations
 
 import io
 import os
-import shutil
-import sys
 import tempfile
 import time
-import wave
-from dataclasses import dataclass
-
-from PIL import Image
+import warnings
 from subprocess import Popen, PIPE
 from typing import NamedTuple, Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io.wavfile
-from matplotlib.figure import Figure, Axes
-from numpy import ndarray
-
-os.environ['KERAS_BACKEND'] = "plaidml.keras.backend"
-
-import keras
-from keras import backend
-
-import tensorflow as tf
+from PIL import Image
 from inaSpeechSegmenter import *
 from inaSpeechSegmenter.segmenter import featGenerator
+from matplotlib.figure import Figure, Axes
 
 
 class ResultFrame(NamedTuple):
@@ -175,21 +163,30 @@ def get_result_percentages(result: Result) -> tuple[float, float, float]:
     return f, m, 1 - f - m
 
 
-# def test():
-#     results: BatchResults = BatchResults(
-#         [Result([ResultFrame('female', 0.0, 10.48), ResultFrame('male', 10.48, 12.780000000000001)],
-#                 '../test.csv')],
-#         1.7032792568206787, 1.7032792568206787, 1,
-#         [('../test.csv', 0)])
-#
-#     with draw_result('../test.mp3', results.results[0]) as buf:
-#         show_image_buffer(buf)
-#         print(get_result_percentages(results.results[0]))
-#
-#     # seg = Segmenter()
-#     # print(process(seg, ['../test.mp3']))
+def test():
+    # results: BatchResults = BatchResults(
+    #     [Result([ResultFrame('female', 0.0, 10.48), ResultFrame('male', 10.48, 12.780000000000001)],
+    #             '../test.csv')],
+    #     1.7032792568206787, 1.7032792568206787, 1,
+    #     [('../test.csv', 0)])
+
+    warnings.filterwarnings("ignore")
+    seg = Segmenter()
+
+    # Warmup run
+    results = process(seg, ['../test.mp3'])
+    print(results)
+
+    # Actual run
+    results = process(seg, ['../test.mp3'])
+    print(results)
+
+    # Draw results
+    with draw_result('../test.mp3', results.results[0]) as buf:
+        show_image_buffer(buf)
+        print(get_result_percentages(results.results[0]))
+
 
 if __name__ == '__main__':
-    # to_wav('../audio_tmp/2021-12-22 05-32 leph1art5.mp3', print)
-    # test()
+    test()
     pass
