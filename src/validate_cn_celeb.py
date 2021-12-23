@@ -3,6 +3,7 @@ import os
 import warnings
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 from inaSpeechSegmenter import Segmenter
 
@@ -15,7 +16,6 @@ def segment_all():
     np.seterr(invalid='ignore')
 
     # Loop through all celebrities
-    ids = [id for id in os.listdir(data_dir) if id.startswith('id')]
     for id in ids:
         id_dir = data_dir.joinpath(id)
 
@@ -64,8 +64,46 @@ def segment_all():
         id_dir.joinpath('total.json').write_text(json.dumps(obj))
 
 
+def graph_histogram():
+    closest_to_half = 1000
+    closest_to_half_id = ''
+    id_pf_map = {}
+    for id in ids:
+        id_dir = data_dir.joinpath(id)
+        json_path = id_dir.joinpath('total.json')
+
+        if not json_path.exists():
+            continue
+
+        obj = json.loads(json_path.read_text())
+        f, m, o, pf = obj['total_averages']
+
+        # Recalculate pf (pf is actually calculated incorrectly)
+        if f + m == 0:
+            continue
+        pf = f / (f + m)
+        id_pf_map[id] = pf
+
+        # Save fixed json
+        obj['total_averages'][3] = pf
+        json_path.write_text(json.dumps(obj))
+
+        # Find pf closest to .5
+        dist = abs(pf - .5)
+        if dist < closest_to_half:
+            closest_to_half = dist
+            closest_to_half_id = id
+
+    data_dir.joinpath('id_pf_map.json').write_text(json.dumps(id_pf_map))
+    plt.hist(id_pf_map.values(), bins=50)
+    plt.show()
+    print(closest_to_half_id)
+
+
 if __name__ == '__main__':
     cn_celeb_root = Path('C:/Users/me/Workspace/Data/CN-Celeb_flac')
     data_dir = cn_celeb_root.joinpath('data')
+    ids = [id for id in os.listdir(data_dir) if id.startswith('id')]
 
-    segment_all()
+    # segment_all()
+    graph_histogram()
