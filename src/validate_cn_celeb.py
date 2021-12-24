@@ -9,6 +9,7 @@ import pygame
 from inaSpeechSegmenter import Segmenter
 
 from ina_main import process, get_result_percentages
+from utils import color, printc
 
 
 def segment_all():
@@ -108,10 +109,24 @@ def manually_label_data():
     """
     pygame.mixer.init()
 
+    # Load existing labels
+    labels_json = data_dir.joinpath('id_labels.json')
+    id_labels = json.loads(labels_json.read_text()) if labels_json.exists() else {}
+
+    # Load pf table
+    id_pfs = json.loads(data_dir.joinpath('id_pf_map.json').read_text())
+
     # Loop through all speaker
-    id_labels = {}
     for id_i, id in enumerate(ids):
         id_dir = data_dir.joinpath(id)
+
+        # Skip already identified labels
+        if id in id_labels:
+            continue
+
+        # Get ina choice
+        pf = id_pfs[id]
+        ina_choice = 'f' if pf > 0.5 else 'm'
 
         # Loop through all tracks until identified
         tracks = [f for f in os.listdir(id_dir) if f.endswith('.flac')]
@@ -119,15 +134,20 @@ def manually_label_data():
             # Play track
             sound = pygame.mixer.Sound(id_dir.joinpath(audio))
             sound.play()
-            i = input(f'Playing speaker {id_i}/{len(ids)} - track {track_i}/{len(tracks)}\n'
-                      f'- Identify gender. Press f / m, or anything else to play next track: ')\
+            i = input(color(
+                f'\n&7Playing speaker {id_i}/{len(ids)} - track {track_i}/{len(tracks)}&r\n'
+                f'- Press f / m, or anything else to play next track: '))\
                 .lower().strip()
             sound.stop()
 
             # Labeled
             if i == 'f' or i == 'm':
                 id_labels[id] = i
-                data_dir.joinpath('id_labels.json').write_text(json.dumps(id_labels))
+                labels_json.write_text(json.dumps(id_labels))
+
+                # Print choice match
+                agree = '&aINA agrees' if ina_choice == i else '&cINA disagree'
+                printc(f'INA {agree} with confidence {abs(pf - 0.5) * 200:.0f}%')
                 break
 
 
