@@ -5,6 +5,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pygame
 from inaSpeechSegmenter import Segmenter
 
 from ina_main import process, get_result_percentages
@@ -100,10 +101,41 @@ def graph_histogram():
     print(closest_to_half_id)
 
 
+def manually_label_data():
+    """
+    Since CN-Celeb isn't labelled with the speaker's gender, this script is used to manually label
+    them.
+    """
+    pygame.mixer.init()
+
+    # Loop through all speaker
+    id_labels = {}
+    for id_i, id in enumerate(ids):
+        id_dir = data_dir.joinpath(id)
+
+        # Loop through all tracks until identified
+        tracks = [f for f in os.listdir(id_dir) if f.endswith('.flac')]
+        for track_i, audio in enumerate(tracks):
+            # Play track
+            sound = pygame.mixer.Sound(id_dir.joinpath(audio))
+            sound.play()
+            i = input(f'Playing speaker {id_i}/{len(ids)} - track {track_i}/{len(tracks)}\n'
+                      f'- Identify gender. Press f / m, or anything else to play next track: ')\
+                .lower().strip()
+            sound.stop()
+
+            # Labeled
+            if i == 'f' or i == 'm':
+                id_labels[id] = i
+                data_dir.joinpath('id_labels.json').write_text(json.dumps(id_labels))
+                break
+
+
 if __name__ == '__main__':
     cn_celeb_root = Path('C:/Users/me/Workspace/Data/CN-Celeb_flac')
     data_dir = cn_celeb_root.joinpath('data')
     ids = [id for id in os.listdir(data_dir) if id.startswith('id')]
 
     # segment_all()
-    graph_histogram()
+    # graph_histogram()
+    manually_label_data()
