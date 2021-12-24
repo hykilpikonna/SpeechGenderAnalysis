@@ -117,7 +117,7 @@ def manually_label_data():
     id_pfs = json.loads(data_dir.joinpath('id_pf_map.json').read_text())
 
     # Loop through all speaker
-    for id_i, id in enumerate(ids):
+    for id in sorted(ids):
         id_dir = data_dir.joinpath(id)
 
         # Skip already identified labels
@@ -125,7 +125,7 @@ def manually_label_data():
             continue
 
         # Get ina choice
-        pf = id_pfs[id]
+        pf = id_pfs.get(id, -1)
         ina_choice = 'f' if pf > 0.5 else 'm'
 
         # Loop through all tracks until identified
@@ -135,10 +135,14 @@ def manually_label_data():
             sound = pygame.mixer.Sound(id_dir.joinpath(audio))
             sound.play()
             i = input(color(
-                f'\n&7Playing speaker {id_i}/{len(ids)} - track {track_i}/{len(tracks)}&r\n'
-                f'- Press f / m, or anything else to play next track: '))\
+                f'\n&7Playing speaker {id[-3:]}/{len(ids)} - track {track_i}/{len(tracks)} - {audio}&r'
+                f'\n- Press f / m, or anything else to play next track: '))\
                 .lower().strip()
             sound.stop()
+
+            # Skip
+            if i == 's':
+                break
 
             # Labeled
             if i == 'f' or i == 'm':
@@ -146,15 +150,18 @@ def manually_label_data():
                 labels_json.write_text(json.dumps(id_labels))
 
                 # Print choice match
-                agree = '&aINA agrees' if ina_choice == i else '&cINA disagree'
-                printc(f'INA {agree} with confidence {abs(pf - 0.5) * 200:.0f}%')
+                if pf != -1:
+                    agree = '&aINA agrees' if ina_choice == i else '&cINA disagree'
+                    printc(f'{agree} with confidence {abs(pf - 0.5) * 200:.0f}%')
+                else:
+                    printc(f"&7INA didn't identify any voice")
                 break
 
 
 if __name__ == '__main__':
     cn_celeb_root = Path('C:/Users/me/Workspace/Data/CN-Celeb_flac')
     data_dir = cn_celeb_root.joinpath('data')
-    ids = [id for id in os.listdir(data_dir) if id.startswith('id')]
+    ids = [id for id in os.listdir(data_dir) if id.startswith('id0')]
 
     # segment_all()
     # graph_histogram()
