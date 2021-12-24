@@ -28,7 +28,10 @@ def process_audio(message: Message):
 
     # Download audio file
     date = datetime.now().strftime('%Y-%m-%d %H-%M')
-    downloader = bot.getFile(audio.file_id)
+    try:
+        downloader = bot.getFile(audio.file_id)
+    except:
+        downloader = bot.getFile(audio.file_id)
     file = Path(tmpdir).joinpath(f'{date} {message.from_user.name[1:]}.mp3')
     print(downloader, '->', file)
     downloader.download(file)
