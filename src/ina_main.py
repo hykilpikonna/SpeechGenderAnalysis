@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import subprocess
 import tempfile
 import time
 import warnings
@@ -178,15 +179,26 @@ def test():
     seg = Segmenter()
 
     # Warmup run
-    results = process(seg, ['../test.mp3'])
+    results = process(seg, ['../test.flac'])
     print(results)
 
-    # Actual run
-    results = process(seg, ['../test.mp3'])
-    print(results)
+    # # Actual run
+    # results = process(seg, ['../test.flac'])
+    # print(results)
+
+    # Benchmark
+    iterations = 60
+    total_time = 0
+    audio_file = '../test.flac'
+    audio_len = float(subprocess.getoutput(f'ffprobe -i {audio_file} -show_entries format=duration -v quiet -of csv="p=0"'))
+
+    for i in range(iterations):
+        results = process(seg, ['../test.flac'])
+        total_time += results.time_full
+    print(f'Benchmark result: {total_time}s / {iterations} iterations = {total_time / iterations / audio_len} seconds of processing per second in audio')
 
     # Draw results
-    with draw_result('../test.mp3', results.results[0]) as buf:
+    with draw_result('../test.flac', results.results[0]) as buf:
         show_image_buffer(buf)
         print(get_result_percentages(results.results[0]))
 
