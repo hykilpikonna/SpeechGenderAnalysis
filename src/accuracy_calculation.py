@@ -53,5 +53,8 @@ if __name__ == '__main__':
     print('Precision M:', precision_m)
     print('Recall M:', recall_m)
 
+    print('F wrongly classified as M:', fp / (tp + fp))
+    print('M wrongly classified as F:', fn / (tn + fn))
+
 
 
