@@ -2,6 +2,7 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 
+import matplotlib
 from telegram import Update, Message
 from telegram.ext import Updater, CallbackContext, Dispatcher, CommandHandler, MessageHandler, \
     Filters
@@ -9,6 +10,7 @@ from telegram.ext import Updater, CallbackContext, Dispatcher, CommandHandler, M
 from ina_main import *
 
 warnings.filterwarnings("ignore")
+matplotlib.use('agg')
 
 
 def r(u: Update, msg: str, md=True):
