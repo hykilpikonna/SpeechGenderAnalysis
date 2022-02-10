@@ -191,6 +191,7 @@ def test():
     iterations = 60
     total_time = 0
     audio_len = float(subprocess.getoutput(f'ffprobe -i {audio_file} -show_entries format=duration -v quiet -of csv="p=0"'))
+    print(f'Audio length: {audio_len}')
 
     for i in range(iterations):
         results = process(seg, [audio_file])
