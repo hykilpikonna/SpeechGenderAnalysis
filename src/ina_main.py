@@ -177,9 +177,10 @@ def test():
 
     warnings.filterwarnings("ignore")
     seg = Segmenter()
+    audio_file = '../test.mp3'
 
     # Warmup run
-    results = process(seg, ['../test.flac'])
+    results = process(seg, [audio_file])
     print(results)
 
     # # Actual run
@@ -189,11 +190,10 @@ def test():
     # Benchmark
     iterations = 60
     total_time = 0
-    audio_file = '../test.flac'
     audio_len = float(subprocess.getoutput(f'ffprobe -i {audio_file} -show_entries format=duration -v quiet -of csv="p=0"'))
 
     for i in range(iterations):
-        results = process(seg, ['../test.flac'])
+        results = process(seg, [audio_file])
         total_time += results.time_full
     print(f'Benchmark result: {total_time}s / {iterations} iterations = {total_time / iterations / audio_len} seconds of processing per second in audio')
 
