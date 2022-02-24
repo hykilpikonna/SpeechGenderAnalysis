@@ -177,7 +177,7 @@ def test():
 
     warnings.filterwarnings("ignore")
     seg = Segmenter()
-    audio_file = '../test.mp3'
+    audio_file = '../test.flac'
 
     # Warmup run
     results = process(seg, [audio_file])
@@ -196,12 +196,15 @@ def test():
     for i in range(iterations):
         results = process(seg, [audio_file])
         total_time += results.time_full
-    print(f'Benchmark result: {total_time}s / {iterations} iterations = {total_time / iterations / audio_len} seconds of processing per second in audio')
+
+    time_per_second = total_time / iterations / audio_len
+    print(f'Benchmark result: {total_time}s / {iterations} iterations = {time_per_second} seconds of processing per second in audio')
+    print(f'Score: {1 / time_per_second}')
 
     # Draw results
-    with draw_result('../test.flac', results.results[0]) as buf:
-        show_image_buffer(buf)
-        print(get_result_percentages(results.results[0]))
+    # with draw_result(audio_file, results.results[0]) as buf:
+    #     show_image_buffer(buf)
+    #     print(get_result_percentages(results.results[0]))
 
 
 if __name__ == '__main__':
