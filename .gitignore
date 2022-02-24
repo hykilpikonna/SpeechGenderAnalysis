@@ -122,3 +122,5 @@ audio_tmp
 src/voice-bot-token.txt
 venv8
 venv9
+
+.DS_Store
