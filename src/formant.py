@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from multiprocessing import Pool
 from os import PathLike
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Literal
 
 import jsonpickle as jsonpickle
 import matplotlib.pyplot as plt
@@ -14,6 +14,9 @@ import numpy
 import numpy as np
 import parselmouth
 import tqdm
+
+
+ASAB = Literal['f', 'm']
 
 
 def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndarray:
@@ -42,7 +45,7 @@ def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndar
     return result
 
 
-def load_vox_celeb_asab_dict(path: PathLike) -> dict[str, str]:
+def load_vox_celeb_asab_dict(path: PathLike) -> dict[str, ASAB]:
     """
     Load voxCeleb 1 or 2's metadata to gather a dictionary mapping id to assigned sex at birth.
 
@@ -53,7 +56,7 @@ def load_vox_celeb_asab_dict(path: PathLike) -> dict[str, str]:
         return {row[0]: row[2] for row in csv.reader(f, delimiter='\t') if row[0].startswith('id')}
 
 
-def loop_id_dirs() -> Iterable[Path]:
+def loop_id_dirs() -> Iterable[tuple[str, Path]]:
     # Loop through all ids
     for id in agab:
         id_dir = vox_celeb_dir.joinpath(id)
@@ -184,7 +187,7 @@ def vox_celeb_statistics_helper(id_dir: Path):
     result = calculate_statistics(cumulative)
 
     # Write results
-    with open(f'{id_dir}/stats.json', 'w') as jsonfile:
+    with open(id_dir.joinpath('stats.json'), 'w') as jsonfile:
         jsonfile.write(jsonpickle.encode(result, jsonfile, indent=1))
 
 
@@ -197,11 +200,50 @@ def vox_celeb_statistics():
             pass
 
 
+def collect_statistics():
+    """
+    Collect statistics and draw interesting visualizations from its results
+    """
+    # Read stats
+    stats_list: list[tuple[FrequencyStats, ASAB]] = []
+    for id, id_dir in loop_id_dirs():
+        stats_dir = id_dir.joinpath('stats.json')
+        if not stats_dir.is_file():
+            continue
+        stats_list.append((jsonpickle.decode(stats_dir.read_text()), agab[id]))
+
+    # Get AFAB and AMAB means
+    headers = ['Pitch (Fundamental Frequency)', 'Formant F1', 'Formant F2', 'Formant F3', 'F1 Ratio', 'F2 Ratio', 'F3 Ratio']
+    f_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
+                        for s, ag in stats_list if ag == 'f'])
+    m_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
+                        for s, ag in stats_list if ag == 'm'])
+
+    # Plot
+    for i in range(len(headers)):
+        fig: plt.Figure
+        ax: plt.Axes
+        fig, ax = plt.subplots()
+
+        ax.set_title(f'Statistical Differences of {headers[i]}')
+        if 'Ratio' in headers[i]:
+            ax.set_xlabel('Multiplier from Pitch')
+        else:
+            ax.set_xlabel('Frequency (hz)')
+
+        ax.hist(f_means[:, i], bins=40, color='#F5A9B8', alpha=0.5)
+        ax.twinx().hist(m_means[:, i], bins=40, color='#5BCEFA', alpha=0.5)
+
+        plt.show()
+        plt.close()
+
+
 if __name__ == '__main__':
     vox_celeb_dir = Path('C:/Workspace/EECS 6414/Datasets/VoxCeleb1/wav')
     agab = load_vox_celeb_asab_dict(vox_celeb_dir.joinpath('../vox1_meta.csv'))
 
     # print(calculate_freq_info(parselmouth.Sound('../00001.wav')))
-    vox_celeb_statistics()
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Extract-Z-44kHz.flac')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Azalea.flac')))
+    # vox_celeb_statistics()
+    collect_statistics()
