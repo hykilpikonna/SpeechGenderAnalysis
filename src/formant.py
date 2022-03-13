@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import json
 import os
 from dataclasses import dataclass
 from multiprocessing import Pool
@@ -10,11 +9,11 @@ from pathlib import Path
 from typing import Iterable
 
 import jsonpickle as jsonpickle
-import numpy as np
-import tqdm
 import matplotlib.pyplot as plt
 import numpy
+import numpy as np
 import parselmouth
+import tqdm
 
 
 def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndarray:
@@ -156,8 +155,6 @@ def calculate_statistics(arr: np.ndarray) -> FrequencyStats:
     :param arr: n-by-4 Array from calculate_freq_info
     :return: Statistics
     """
-    result: list[Statistics] = []
-
     def calc_col_stats(col: np.ndarray) -> Statistics:
         q1 = np.quantile(col, 0.25)
         q3 = np.quantile(col, 0.75)
@@ -172,29 +169,32 @@ def calculate_statistics(arr: np.ndarray) -> FrequencyStats:
             len(arr)
         )
 
-    for i in range(0, 4):
-        result.append(calc_col_stats(arr[:, i]))
-
-    for i in range(1, 4):
-        result.append(calc_col_stats(np.divide(arr[:, i], arr[:, 0])))
+    result = [calc_col_stats(arr[:, i]) for i in range(0, 4)] + \
+             [calc_col_stats(np.divide(arr[:, i], arr[:, 0])) for i in range(1, 4)]
 
     return FrequencyStats(*result)
 
 
-def celeb_statistics():
+def vox_celeb_statistics_helper(id_dir: Path):
+    # Load all files
+    cumulative: np.ndarray = np.concatenate([np.load(f) for f in get_audio_paths(id_dir, 'npy')])
+
+    # Remove out NaN values
+    cumulative = cumulative[~np.isnan(cumulative).any(axis=1), :]
+    result = calculate_statistics(cumulative)
+
+    # Write results
+    with open(f'{id_dir}/stats.json', 'w') as jsonfile:
+        jsonfile.write(jsonpickle.encode(result, jsonfile, indent=1))
+
+
+def vox_celeb_statistics():
+    id_dirs = [id_dir for id, id_dir in loop_id_dirs()]
+
     # Loop through all ids
-    for id, id_dir in loop_id_dirs():
-
-        # Load all files
-        cumulative: np.ndarray = np.concatenate([np.load(f) for f in get_audio_paths(id_dir, 'npy')])
-
-        # Remove out NaN values
-        cumulative = cumulative[~np.isnan(cumulative).any(axis=1), :]
-        result = calculate_statistics(cumulative)
-
-        # Write results
-        with open(f'{id_dir}/stats.json', 'w') as jsonfile:
-            jsonfile.write(jsonpickle.encode(result, jsonfile, indent=1))
+    with Pool(8) as pool:
+        for _ in tqdm.tqdm(pool.imap(vox_celeb_statistics_helper, id_dirs), total=len(id_dirs)):
+            pass
 
 
 if __name__ == '__main__':
@@ -202,6 +202,6 @@ if __name__ == '__main__':
     agab = load_vox_celeb_asab_dict(vox_celeb_dir.joinpath('../vox1_meta.csv'))
 
     # print(calculate_freq_info(parselmouth.Sound('../00001.wav')))
-    celeb_statistics()
+    vox_celeb_statistics()
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Extract-Z-44kHz.flac')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Azalea.flac')))
