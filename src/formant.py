@@ -5,10 +5,11 @@ import numpy
 import parselmouth
 
 
-def calculate_freq_info(audio: parselmouth.Sound) -> numpy.ndarray:
+def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndarray:
     """
     Calculate pitch and frequency
 
+    :param show_plot: Show pyplot plot or not
     :param audio: Sound input
     :return: 2D Array (Each row is 1/100 of a second, row[0] is pitch (fundamental frequency), row[1:4] is formant)
     """
@@ -23,8 +24,9 @@ def calculate_freq_info(audio: parselmouth.Sound) -> numpy.ndarray:
         for f in range(1, 4):
             result[i][f] = formant_values.get_value_at_time(f, i / 100) if pitch else None
 
-    plt.plot(result)
-    plt.show()
+    if show_plot:
+        plt.plot(result)
+        plt.show()
 
     return result
 
