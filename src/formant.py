@@ -16,9 +16,11 @@ import pandas as pd
 import parselmouth
 import tqdm
 import seaborn as sns
-
+from matplotlib.patches import Patch
 
 ASAB = Literal['f', 'm']
+COLOR_PINK = '#F5A9B8'
+COLOR_BLUE = '#5BCEFA'
 
 
 def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndarray:
@@ -153,6 +155,27 @@ class Statistics:
     n: int
 
 
+def calc_col_stats(col: np.ndarray) -> Statistics:
+    """
+    Compute statistics for a data column
+
+    :param col: Input column (tested on 1D array)
+    :return: Statistics
+    """
+    q1 = np.quantile(col, 0.25)
+    q3 = np.quantile(col, 0.75)
+    return Statistics(
+        float(np.mean(col)),
+        float(np.median(col)),
+        float(q1),
+        float(q3),
+        float(q3 - q1),
+        float(np.min(col)),
+        float(np.max(col)),
+        len(col)
+    )
+
+
 def calculate_statistics(arr: np.ndarray) -> FrequencyStats:
     """
     Calculate frequency data array statistics
@@ -160,20 +183,6 @@ def calculate_statistics(arr: np.ndarray) -> FrequencyStats:
     :param arr: n-by-4 Array from calculate_freq_info
     :return: Statistics
     """
-    def calc_col_stats(col: np.ndarray) -> Statistics:
-        q1 = np.quantile(col, 0.25)
-        q3 = np.quantile(col, 0.75)
-        return Statistics(
-            float(np.mean(col)),
-            float(np.median(col)),
-            float(q1),
-            float(q3),
-            float(q3 - q1),
-            float(np.min(col)),
-            float(np.max(col)),
-            len(arr)
-        )
-
     result = [calc_col_stats(arr[:, i]) for i in range(0, 4)] + \
              [calc_col_stats(np.divide(arr[:, i], arr[:, 0])) for i in range(1, 4)]
 
@@ -219,7 +228,7 @@ def collect_statistics():
         stats_list.append((jsonpickle.decode(stats_dir.read_text()), agab[id]))
 
     # Get AFAB and AMAB means
-    headers = ['Pitch (Fundamental Frequency)', 'Formant F1', 'Formant F2', 'Formant F3', 'F1 Ratio', 'F2 Ratio', 'F3 Ratio']
+    headers = ['Pitch\n(Fundamental\nFrequency)', 'Formant F1', 'Formant F2', 'Formant F3', 'F1 Ratio', 'F2 Ratio', 'F3 Ratio']
     f_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
                         for s, ag in stats_list if ag == 'f'])
     m_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
@@ -245,7 +254,19 @@ def collect_statistics():
     sns.set_theme(style="ticks")
     fig, ax = subplots(figsize=(10, 5))
     # ax.set_xscale('log')
-
+    #print(sns.load_dataset('tips'))
+    print("Pitch")
+    print(calc_col_stats(f_means[:, 0]))
+    print(calc_col_stats(m_means[:, 0]))
+    print("F1")
+    print(calc_col_stats(f_means[:, 1]))
+    print(calc_col_stats(m_means[:, 1]))
+    print("F2")
+    print(calc_col_stats(f_means[:, 2]))
+    print(calc_col_stats(m_means[:, 2]))
+    print("F3")
+    print(calc_col_stats(f_means[:, 3]))
+    print(calc_col_stats(m_means[:, 3]))
     df = pd.DataFrame({headers[i]: f_means[:, i] for i in range(4)})
     dm = pd.DataFrame({headers[i]: m_means[:, i] for i in range(4)})
     # data.boxplot()
@@ -253,13 +274,22 @@ def collect_statistics():
     # sns.boxplot(data=dm, orient='h', color='#5BCEFA', linewidth=0.5)
     # sns.stripplot(x="distance", y="method", data=data, size=4, color=".3", linewidth=0)
     args = dict(orient='h', scale='width', inner='quartile', linewidth=0.5)
-    sns.violinplot(data=df, color='#F5A9B8', **args)
-    sns.violinplot(data=dm, color='#5BCEFA', **args)
-
+    #dt=pd.DataFrame({"Female":df, "Male":dm})
+    sns.violinplot(data=df, color=COLOR_PINK, **args)
+    sns.violinplot(data=dm, color=COLOR_BLUE, **args)
     [c.set_alpha(0.7) for c in ax.collections]
 
+    # Create legend
+    legend_elements = [
+        Patch(facecolor=COLOR_PINK, edgecolor='r', label='Feminine'),
+        Patch(facecolor=COLOR_BLUE, edgecolor='b', label='Masculine'),
+    ]
+    plt.legend(handles=legend_elements)
+
+    ax.set_title("Distribution of Pitch and Formant Based on Gender")
     ax.xaxis.grid(True)
     ax.set_ylabel('')
+    ax.set_xlabel('Frequency (Hz)')
     sns.despine(fig, ax)
     plt.show()
 
