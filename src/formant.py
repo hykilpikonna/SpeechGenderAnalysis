@@ -12,8 +12,10 @@ import jsonpickle as jsonpickle
 import matplotlib.pyplot as plt
 import numpy
 import numpy as np
+import pandas as pd
 import parselmouth
 import tqdm
+import seaborn as sns
 
 
 ASAB = Literal['f', 'm']
@@ -200,6 +202,10 @@ def vox_celeb_statistics():
             pass
 
 
+def subplots(**kwargs) -> tuple[plt.Figure, plt.Axes]:
+    return plt.subplots(**kwargs)
+
+
 def collect_statistics():
     """
     Collect statistics and draw interesting visualizations from its results
@@ -219,23 +225,43 @@ def collect_statistics():
     m_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
                         for s, ag in stats_list if ag == 'm'])
 
-    # Plot
-    for i in range(len(headers)):
-        fig: plt.Figure
-        ax: plt.Axes
-        fig, ax = plt.subplots()
+    # Plot histograms
+    # for i in range(len(headers)):
+    #     fig, ax = subplots()
+    #
+    #     ax.set_title(f'Statistical Differences of {headers[i]}')
+    #     if 'Ratio' in headers[i]:
+    #         ax.set_xlabel('Multiplier from Pitch')
+    #     else:
+    #         ax.set_xlabel('Frequency (hz)')
+    #
+    #     ax.hist(f_means[:, i], bins=40, color='#F5A9B8', alpha=0.5)
+    #     ax.twinx().hist(m_means[:, i], bins=40, color='#5BCEFA', alpha=0.5)
+    #
+    #     plt.show()
+    #     plt.close()
 
-        ax.set_title(f'Statistical Differences of {headers[i]}')
-        if 'Ratio' in headers[i]:
-            ax.set_xlabel('Multiplier from Pitch')
-        else:
-            ax.set_xlabel('Frequency (hz)')
+    # Plot bar chart
+    sns.set_theme(style="ticks")
+    fig, ax = subplots(figsize=(10, 5))
+    # ax.set_xscale('log')
 
-        ax.hist(f_means[:, i], bins=40, color='#F5A9B8', alpha=0.5)
-        ax.twinx().hist(m_means[:, i], bins=40, color='#5BCEFA', alpha=0.5)
+    df = pd.DataFrame({headers[i]: f_means[:, i] for i in range(4)})
+    dm = pd.DataFrame({headers[i]: m_means[:, i] for i in range(4)})
+    # data.boxplot()
+    # sns.boxplot(data=df, orient='h', color='#F5A9B8', linewidth=0.5)
+    # sns.boxplot(data=dm, orient='h', color='#5BCEFA', linewidth=0.5)
+    # sns.stripplot(x="distance", y="method", data=data, size=4, color=".3", linewidth=0)
+    args = dict(orient='h', scale='width', inner='quartile', linewidth=0.5)
+    sns.violinplot(data=df, color='#F5A9B8', **args)
+    sns.violinplot(data=dm, color='#5BCEFA', **args)
 
-        plt.show()
-        plt.close()
+    [c.set_alpha(0.7) for c in ax.collections]
+
+    ax.xaxis.grid(True)
+    ax.set_ylabel('')
+    sns.despine(fig, ax)
+    plt.show()
 
 
 if __name__ == '__main__':
