@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import csv
+import json
 import os
 from dataclasses import dataclass
 from multiprocessing import Pool
 from os import PathLike
 from pathlib import Path
 from typing import Iterable, Literal
-
 import jsonpickle as jsonpickle
 import matplotlib.pyplot as plt
 import numpy
@@ -18,9 +18,12 @@ import tqdm
 import seaborn as sns
 from matplotlib.patches import Patch
 
+from spectral_tilt import tilt
+
 ASAB = Literal['f', 'm']
 COLOR_PINK = '#F5A9B8'
 COLOR_BLUE = '#5BCEFA'
+CPU_CORES = 36
 
 
 def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndarray:
@@ -33,7 +36,6 @@ def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndar
     """
     pitch_values = audio.to_pitch(0.01).selected_array['frequency']
     formant_values = audio.to_formant_burg(0.01)
-
     result = numpy.ndarray([len(pitch_values), 4], 'float32')
 
     for i in range(len(pitch_values)):
@@ -104,15 +106,21 @@ def get_audio_paths(id_dir: Path, audio_suffix: str = 'wav') -> list[str]:
     return audios
 
 
-def compute_vox_celeb_helper(aud_dir: str):
+def compute_vox_celeb_freq(aud_dir: str):
     """
-    Compute one audio file
-
-    :param aud_dir: Audio file path
-    :return: None
+    Compute and save the frequency info of one audio file
     """
     array = calculate_freq_info(parselmouth.Sound(aud_dir))
     numpy.save(aud_dir, array)
+
+
+def compute_vox_celeb_tilt(aud_dir: str):
+    """
+    Compute and save the tilt info of one audio file
+    """
+    spectral_tilt = tilt(parselmouth.Sound(aud_dir))
+    with open(Path(aud_dir).with_suffix('.json'), 'w', encoding='utf-8') as f:
+        json.dump({'tilt': spectral_tilt}, f)
 
 
 def compute_vox_celeb():
@@ -127,8 +135,8 @@ def compute_vox_celeb():
     print('Starting processing...')
 
     # Compute audio files in a cpu pool
-    with Pool(8) as pool:
-        for _ in tqdm.tqdm(pool.imap(compute_vox_celeb_helper, queue), total=len(queue)):
+    with Pool(CPU_CORES) as pool:
+        for _ in tqdm.tqdm(pool.imap(compute_vox_celeb_tilt, queue), total=len(queue)):
             pass
 
 
@@ -206,7 +214,7 @@ def vox_celeb_statistics():
     id_dirs = [id_dir for id, id_dir in loop_id_dirs()]
 
     # Loop through all ids
-    with Pool(8) as pool:
+    with Pool(CPU_CORES) as pool:
         for _ in tqdm.tqdm(pool.imap(vox_celeb_statistics_helper, id_dirs), total=len(id_dirs)):
             pass
 
@@ -255,6 +263,7 @@ def collect_statistics():
     fig, ax = subplots(figsize=(10, 5))
     # ax.set_xscale('log')
     #print(sns.load_dataset('tips'))
+
     print("Pitch")
     print(calc_col_stats(f_means[:, 0]))
     print(calc_col_stats(m_means[:, 0]))
@@ -267,6 +276,7 @@ def collect_statistics():
     print("F3")
     print(calc_col_stats(f_means[:, 3]))
     print(calc_col_stats(m_means[:, 3]))
+
     df = pd.DataFrame({headers[i]: f_means[:, i] for i in range(4)})
     dm = pd.DataFrame({headers[i]: m_means[:, i] for i in range(4)})
     # data.boxplot()
@@ -301,5 +311,5 @@ if __name__ == '__main__':
     # print(calculate_freq_info(parselmouth.Sound('../00001.wav')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Extract-Z-44kHz.flac')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Azalea.flac')))
-    # vox_celeb_statistics()
-    collect_statistics()
+    compute_vox_celeb()
+    # collect_statistics()
