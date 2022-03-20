@@ -1,6 +1,10 @@
 
 tensorflow==2.8.0
-inaSpeechSegmenter==0.6.8
+inaSpeechSegmenter==0.7.3
 
 python-telegram-bot
 pygame
+
+praat-parselmouth==0.4.1
+tqdm
+seaborn

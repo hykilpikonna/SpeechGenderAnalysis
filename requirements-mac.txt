@@ -5,3 +5,7 @@ inaSpeechSegmenter==0.6.8
 
 python-telegram-bot
 pygame
+
+praat-parselmouth==0.4.1
+tqdm
+seaborn
