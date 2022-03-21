@@ -4,6 +4,7 @@ import csv
 import json
 import os
 from dataclasses import dataclass
+from json import JSONDecodeError
 from multiprocessing import Pool
 from os import PathLike
 from pathlib import Path
@@ -184,7 +185,7 @@ def calc_col_stats(col: np.ndarray) -> Statistics:
     )
 
 
-def calculate_statistics(arr: np.ndarray) -> FrequencyStats:
+def calculate_freq_statistics(arr: np.ndarray) -> FrequencyStats:
     """
     Calculate frequency data array statistics
 
@@ -197,16 +198,34 @@ def calculate_statistics(arr: np.ndarray) -> FrequencyStats:
     return FrequencyStats(*result)
 
 
-def vox_celeb_statistics_helper(id_dir: Path):
+def vox_celeb_statistics_freq(id_dir: Path):
     # Load all files
     cumulative: np.ndarray = np.concatenate([np.load(f) for f in get_audio_paths(id_dir, 'npy')])
 
     # Remove out NaN values
     cumulative = cumulative[~np.isnan(cumulative).any(axis=1), :]
-    result = calculate_statistics(cumulative)
+    result = calculate_freq_statistics(cumulative)
 
     # Write results
     with open(id_dir.joinpath('stats.json'), 'w') as jsonfile:
+        jsonfile.write(jsonpickle.encode(result, jsonfile, indent=1))
+
+
+def vox_celeb_statistics_tilt(id_dir: Path):
+    # Load all calculated files
+    cumulative = []
+    for f in get_audio_paths(id_dir, 'json'):
+        try:
+            cumulative.append(json.loads(Path(f).read_text('utf-8'))['tilt'])
+        except JSONDecodeError:
+            print(f'Error in {f}')
+
+    # Remove out NaN values
+    cumulative = [c for c in cumulative if c is not None]
+    result = calc_col_stats(np.array(cumulative))
+
+    # Write results
+    with open(id_dir.joinpath('tilt.json'), 'w') as jsonfile:
         jsonfile.write(jsonpickle.encode(result, jsonfile, indent=1))
 
 
@@ -215,7 +234,7 @@ def vox_celeb_statistics():
 
     # Loop through all ids
     with Pool(CPU_CORES) as pool:
-        for _ in tqdm.tqdm(pool.imap(vox_celeb_statistics_helper, id_dirs), total=len(id_dirs)):
+        for _ in tqdm.tqdm(pool.imap(vox_celeb_statistics_tilt, id_dirs), total=len(id_dirs)):
             pass
 
 
@@ -242,27 +261,9 @@ def collect_statistics():
     m_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
                         for s, ag in stats_list if ag == 'm'])
 
-    # Plot histograms
-    # for i in range(len(headers)):
-    #     fig, ax = subplots()
-    #
-    #     ax.set_title(f'Statistical Differences of {headers[i]}')
-    #     if 'Ratio' in headers[i]:
-    #         ax.set_xlabel('Multiplier from Pitch')
-    #     else:
-    #         ax.set_xlabel('Frequency (hz)')
-    #
-    #     ax.hist(f_means[:, i], bins=40, color='#F5A9B8', alpha=0.5)
-    #     ax.twinx().hist(m_means[:, i], bins=40, color='#5BCEFA', alpha=0.5)
-    #
-    #     plt.show()
-    #     plt.close()
-
     # Plot bar chart
     sns.set_theme(style="ticks")
     fig, ax = subplots(figsize=(10, 5))
-    # ax.set_xscale('log')
-    #print(sns.load_dataset('tips'))
 
     print("Pitch")
     print(calc_col_stats(f_means[:, 0]))
@@ -279,12 +280,7 @@ def collect_statistics():
 
     df = pd.DataFrame({headers[i]: f_means[:, i] for i in range(4)})
     dm = pd.DataFrame({headers[i]: m_means[:, i] for i in range(4)})
-    # data.boxplot()
-    # sns.boxplot(data=df, orient='h', color='#F5A9B8', linewidth=0.5)
-    # sns.boxplot(data=dm, orient='h', color='#5BCEFA', linewidth=0.5)
-    # sns.stripplot(x="distance", y="method", data=data, size=4, color=".3", linewidth=0)
     args = dict(orient='h', scale='width', inner='quartile', linewidth=0.5)
-    #dt=pd.DataFrame({"Female":df, "Male":dm})
     sns.violinplot(data=df, color=COLOR_PINK, **args)
     sns.violinplot(data=dm, color=COLOR_BLUE, **args)
     [c.set_alpha(0.7) for c in ax.collections]
@@ -304,12 +300,56 @@ def collect_statistics():
     plt.show()
 
 
+def collect_tilt():
+    """
+    Collect statistics and draw interesting visualizations from its results
+    """
+    # Read stats
+    stats_list: list[tuple[Statistics, ASAB]] = []
+    for id, id_dir in loop_id_dirs():
+        stats_dir = id_dir.joinpath('tilt.json')
+        if not stats_dir.is_file():
+            continue
+        stats_list.append((jsonpickle.decode(stats_dir.read_text()), agab[id]))
+
+    # Get AFAB and AMAB means
+    f_means = np.array([s.mean for s, ag in stats_list if ag == 'f'])
+    m_means = np.array([s.mean for s, ag in stats_list if ag == 'm'])
+
+    # Plot bar chart
+    sns.set_theme(style="ticks")
+    fig, ax = subplots(figsize=(10, 5))
+
+    df = pd.DataFrame({"Tilt": f_means})
+    dm = pd.DataFrame({"Tilt": m_means})
+    args = dict(orient='h', scale='width', inner='quartile', linewidth=0.5)
+    sns.violinplot(data=df, color=COLOR_PINK, **args)
+    sns.violinplot(data=dm, color=COLOR_BLUE, **args)
+    [c.set_alpha(0.7) for c in ax.collections]
+
+    # Create legend
+    legend_elements = [
+        Patch(facecolor=COLOR_PINK, edgecolor='r', label='Feminine'),
+        Patch(facecolor=COLOR_BLUE, edgecolor='b', label='Masculine'),
+    ]
+    plt.legend(handles=legend_elements)
+
+    ax.set_title("Distribution of Spectral Tilt on Gender")
+    ax.xaxis.grid(True)
+    ax.set_ylabel('')
+    ax.set_xlabel('Tilt Value')
+    sns.despine(fig, ax)
+    plt.show()
+
+
 if __name__ == '__main__':
-    vox_celeb_dir = Path('C:/Workspace/EECS 6414/Datasets/VoxCeleb1/wav')
+    vox_celeb_dir = Path('C:/Datasets/VoxCeleb1/wav')
     agab = load_vox_celeb_asab_dict(vox_celeb_dir.joinpath('../vox1_meta.csv'))
 
     # print(calculate_freq_info(parselmouth.Sound('../00001.wav')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Extract-Z-44kHz.flac')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Azalea.flac')))
-    compute_vox_celeb()
+    # compute_vox_celeb()
+    # vox_celeb_statistics()
     # collect_statistics()
+    collect_tilt()
