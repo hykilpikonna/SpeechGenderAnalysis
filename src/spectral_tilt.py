@@ -6,10 +6,11 @@ from parselmouth.praat import call
 
 # https://github.com/Voice-Lab/VoiceLab/blob/2edf9678866eb5f5f230bf1578e1aa418f7f4917/Voicelab/toolkits/Voicelab/MeasureSpectralTiltNode.py
 # The closer to positive the creakier it is#
-def tilt(sound):
+def tilt(sound: parselmouth.Sound):
     # read the sound
-    window_length_in_millisecs = 64
-    window_length = window_length_in_millisecs / 1000
+
+    window_length = sound.get_total_duration()
+
 
     # Compute begin and end times, set window
     end = call(sound, "Get end time")
@@ -66,8 +67,3 @@ def tilt(sound):
     spectral_tilt = sXY / sXX
     # print(spectral_tilt)
     return spectral_tilt
-# tilt("../creaky i.wav")
-# tilt("../normal i.wav")
-
-# tilt("../Creaky.wav")
-# tilt("../Breathy.wav")
