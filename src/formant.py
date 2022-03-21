@@ -365,16 +365,19 @@ if __name__ == '__main__':
 
     ############
     # 1. Compute and save all the frequency (pitch, f0, f1, f2) for vox1
+    #    For each audio, a file <audio-name>.npy will be saved, with each row representing 10ms data
     # compute_audio_vox_celeb(compute_audio_freq)
 
-    # 2. Combine statistics for each person in vox1
-    call_id_vox_celeb(combine_id_freq)
+    # 2. Combine and save statistics for each person in vox1
+    #    For each person, stats.json will be saved, containing statistics of all of their audios
+    # call_id_vox_celeb(combine_id_freq)
 
     # 3. Collect statistics and draw visualizations
     collect_visualize_freq()
 
     ###########
     # 1. Compute and save all the spectral tilt for vox1
+    #    For each audio, a file <audio-name>.json will be saved with tilt value in it
     # compute_audio_vox_celeb(compute_audio_tilt)
 
     # 2. Combine statistics for each person in vox1
