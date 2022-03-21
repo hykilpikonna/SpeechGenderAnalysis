@@ -8,7 +8,7 @@ from json import JSONDecodeError
 from multiprocessing import Pool
 from os import PathLike
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Callable
 import jsonpickle as jsonpickle
 import matplotlib.pyplot as plt
 import numpy
@@ -107,7 +107,7 @@ def get_audio_paths(id_dir: Path, audio_suffix: str = 'wav') -> list[str]:
     return audios
 
 
-def compute_vox_celeb_freq(aud_dir: str):
+def compute_audio_freq(aud_dir: str):
     """
     Compute and save the frequency info of one audio file
     """
@@ -115,7 +115,7 @@ def compute_vox_celeb_freq(aud_dir: str):
     numpy.save(aud_dir, array)
 
 
-def compute_vox_celeb_tilt(aud_dir: str):
+def compute_audio_tilt(aud_dir: str):
     """
     Compute and save the tilt info of one audio file
     """
@@ -124,7 +124,12 @@ def compute_vox_celeb_tilt(aud_dir: str):
         json.dump({'tilt': spectral_tilt}, f)
 
 
-def compute_vox_celeb():
+def compute_audio_vox_celeb(func: Callable[[str], None]) -> None:
+    """
+    Compute a function for each audio file in the vox celeb dataset
+
+    :param func: The function to compute - func(aud_dir) -> None
+    """
     print('Finding audio files...')
     queue: list[str] = []
 
@@ -137,7 +142,7 @@ def compute_vox_celeb():
 
     # Compute audio files in a cpu pool
     with Pool(CPU_CORES) as pool:
-        for _ in tqdm.tqdm(pool.imap(compute_vox_celeb_tilt, queue), total=len(queue)):
+        for _ in tqdm.tqdm(pool.imap(func, queue), total=len(queue)):
             pass
 
 
@@ -198,7 +203,10 @@ def calculate_freq_statistics(arr: np.ndarray) -> FrequencyStats:
     return FrequencyStats(*result)
 
 
-def vox_celeb_statistics_freq(id_dir: Path):
+def combine_id_freq(id_dir: Path):
+    """
+    Combine frequency data of all audio files under one person
+    """
     # Load all files
     cumulative: np.ndarray = np.concatenate([np.load(f) for f in get_audio_paths(id_dir, 'npy')])
 
@@ -211,7 +219,10 @@ def vox_celeb_statistics_freq(id_dir: Path):
         jsonfile.write(jsonpickle.encode(result, jsonfile, indent=1))
 
 
-def vox_celeb_statistics_tilt(id_dir: Path):
+def combine_id_tilt(id_dir: Path):
+    """
+    Combine tilt data of all audio files under one person
+    """
     # Load all calculated files
     cumulative = []
     for f in get_audio_paths(id_dir, 'json'):
@@ -229,12 +240,17 @@ def vox_celeb_statistics_tilt(id_dir: Path):
         jsonfile.write(jsonpickle.encode(result, jsonfile, indent=1))
 
 
-def vox_celeb_statistics():
+def call_id_vox_celeb(func: Callable[[Path], None]) -> None:
+    """
+    Call a function for each person's id in the vox celeb dataset.
+
+    :param func: func(id_dir) -> None
+    """
     id_dirs = [id_dir for id, id_dir in loop_id_dirs()]
 
     # Loop through all ids
     with Pool(CPU_CORES) as pool:
-        for _ in tqdm.tqdm(pool.imap(vox_celeb_statistics_tilt, id_dirs), total=len(id_dirs)):
+        for _ in tqdm.tqdm(pool.imap(func, id_dirs), total=len(id_dirs)):
             pass
 
 
@@ -242,7 +258,7 @@ def subplots(**kwargs) -> tuple[plt.Figure, plt.Axes]:
     return plt.subplots(**kwargs)
 
 
-def collect_statistics():
+def collect_visualize_freq():
     """
     Collect statistics and draw interesting visualizations from its results
     """
@@ -281,6 +297,7 @@ def collect_statistics():
     df = pd.DataFrame({headers[i]: f_means[:, i] for i in range(4)})
     dm = pd.DataFrame({headers[i]: m_means[:, i] for i in range(4)})
     args = dict(orient='h', scale='width', inner='quartile', linewidth=0.5)
+    sns.histplot()
     sns.violinplot(data=df, color=COLOR_PINK, **args)
     sns.violinplot(data=dm, color=COLOR_BLUE, **args)
     [c.set_alpha(0.7) for c in ax.collections]
@@ -300,7 +317,7 @@ def collect_statistics():
     plt.show()
 
 
-def collect_tilt():
+def collect_visualize_tilt():
     """
     Collect statistics and draw interesting visualizations from its results
     """
@@ -346,10 +363,26 @@ if __name__ == '__main__':
     vox_celeb_dir = Path('C:/Datasets/VoxCeleb1/wav')
     agab = load_vox_celeb_asab_dict(vox_celeb_dir.joinpath('../vox1_meta.csv'))
 
+    ############
+    # 1. Compute and save all the frequency (pitch, f0, f1, f2) for vox1
+    # compute_audio_vox_celeb(compute_audio_freq)
+
+    # 2. Combine statistics for each person in vox1
+    call_id_vox_celeb(combine_id_freq)
+
+    # 3. Collect statistics and draw visualizations
+    collect_visualize_freq()
+
+    ###########
+    # 1. Compute and save all the spectral tilt for vox1
+    # compute_audio_vox_celeb(compute_audio_tilt)
+
+    # 2. Combine statistics for each person in vox1
+    # call_id_vox_celeb(combine_id_tilt)
+
+    # 3. Collect statistics and draw visualizations
+    # collect_visualize_tilt()
+
     # print(calculate_freq_info(parselmouth.Sound('../00001.wav')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Extract-Z-44kHz.flac')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Azalea.flac')))
-    # compute_vox_celeb()
-    # vox_celeb_statistics()
-    # collect_statistics()
-    collect_tilt()
