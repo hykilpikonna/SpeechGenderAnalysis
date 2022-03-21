@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import math
 import parselmouth
 
 
-def tilt(sound: parselmouth.Sound) -> float:
+def tilt(sound: parselmouth.Sound) -> float | None:
     """
     Compute spectral tilt
 
@@ -14,7 +16,7 @@ def tilt(sound: parselmouth.Sound) -> float:
     Credit to VoiceLab (https://github.com/Voice-Lab/VoiceLab)
 
     :param sound: Decoded sound
-    :return: Spectral tilt value
+    :return: Spectral tilt value or None if no value is found
     """
     spectrum = sound.to_spectrum()
     total_bins = spectrum.get_number_of_bins()
