@@ -1,25 +1,22 @@
 import math
 import parselmouth
 
-from parselmouth.praat import call
 
+def tilt(sound: parselmouth.Sound) -> float:
+    """
+    Compute spectral tilt
 
-# https://github.com/Voice-Lab/VoiceLab/blob/2edf9678866eb5f5f230bf1578e1aa418f7f4917/Voicelab/toolkits/Voicelab/MeasureSpectralTiltNode.py
-# The closer to positive the creakier it is#
-def tilt(sound: parselmouth.Sound):
-    # read the sound
+    Based on statistics, spectral tilt's range is around [-0.5, -0.08]. Higher spectral tilt is
+    correlated with a creaky voice, and lower spectral tilt is correlated with a breathy voice.
 
-    window_length = sound.get_total_duration()
+    Implementation modified from https://github.com/Voice-Lab/VoiceLab/blob/main/Voicelab/toolkits/Voicelab/MeasureSpectralTiltNode.py
 
+    Credit to VoiceLab (https://github.com/Voice-Lab/VoiceLab)
 
-    # Compute begin and end times, set window
-    end = call(sound, "Get end time")
-    midpoint = end / 2
-
-    begintime = midpoint - (window_length / 2)
-    endtime = midpoint + (window_length / 2)
-    part_to_measure = sound.extract_part(begintime, endtime)
-    spectrum = part_to_measure.to_spectrum()
+    :param sound: Decoded sound
+    :return: Spectral tilt value
+    """
+    spectrum = sound.to_spectrum()
     total_bins = spectrum.get_number_of_bins()
     dBValue = []
     bins = []
@@ -65,5 +62,4 @@ def tilt(sound: parselmouth.Sound):
     sXX = sumXX - ((sumX * sumX) / len(bins))
     sXY = sumXY - ((sumX * sumY) / len(bins))
     spectral_tilt = sXY / sXX
-    # print(spectral_tilt)
     return spectral_tilt
