@@ -152,9 +152,6 @@ class FrequencyStats:
     f1: Statistics
     f2: Statistics
     f3: Statistics
-    f1ratio: Statistics
-    f2ratio: Statistics
-    f3ratio: Statistics
 
 
 @dataclass
@@ -197,8 +194,7 @@ def calculate_freq_statistics(arr: np.ndarray) -> FrequencyStats:
     :param arr: n-by-4 Array from calculate_freq_info
     :return: Statistics
     """
-    result = [calc_col_stats(arr[:, i]) for i in range(0, 4)] + \
-             [calc_col_stats(np.divide(arr[:, i], arr[:, 0])) for i in range(1, 4)]
+    result = [calc_col_stats(arr[:, i]) for i in range(0, 4)]
 
     return FrequencyStats(*result)
 
