@@ -280,7 +280,6 @@ def collect_visualize_freq():
     df = pd.DataFrame({headers[i]: f_means[:, i] for i in range(4)})
     dm = pd.DataFrame({headers[i]: m_means[:, i] for i in range(4)})
     args = dict(orient='h', scale='width', inner='quartile', linewidth=0.5)
-    sns.histplot()
     sns.violinplot(data=df, color=COLOR_PINK, **args)
     sns.violinplot(data=dm, color=COLOR_BLUE, **args)
     [c.set_alpha(0.7) for c in ax.collections]
@@ -346,7 +345,7 @@ def collect_visualize_tilt():
     plt.show()
 
     # Write JSON
-    data = {'f': f_means.tolist(), 'm': m_means.tolist()}
+    data = {'tilt': {'f': f_means.tolist(), 'm': m_means.tolist()}}
     Path('results/tilt-data.json').write_text(json.dumps(data), 'utf-8')
 
 
@@ -364,7 +363,7 @@ if __name__ == '__main__':
     # call_id_vox_celeb(combine_id_freq)
 
     # 3. Collect statistics and draw visualizations
-    collect_visualize_freq()
+    # collect_visualize_freq()
 
     ###########
     # 1. Compute and save all the spectral tilt for vox1
