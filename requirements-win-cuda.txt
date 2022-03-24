@@ -8,3 +8,4 @@ pygame
 praat-parselmouth==0.4.1
 tqdm
 seaborn
+jsonpickle

@@ -48,3 +48,15 @@ pip install -r requirements-win-cuda.txt
 ```shell
 python -c "from tensorflow.python.client import device_lib; print(device_lib.list_local_devices())"
 ```
+
+### Arch Linux (CUDA)
+
+#### Python (3.9.11)
+
+```sh
+python -m venv venv
+source ./venv/bin/activate
+pip install -r requirements-win-cuda.txt
+sudo pacman -S tensorflow-cuda
+python -c "from tensorflow.python.client import device_lib; print(device_lib.list_local_devices())"
+```
