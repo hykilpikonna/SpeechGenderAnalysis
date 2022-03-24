@@ -281,19 +281,6 @@ def collect_visualize_freq():
     sns.set_theme(style="ticks")
     fig, ax = subplots(figsize=(10, 5))
 
-    print("Pitch")
-    print(calc_col_stats(f_means[:, 0]))
-    print(calc_col_stats(m_means[:, 0]))
-    print("F1")
-    print(calc_col_stats(f_means[:, 1]))
-    print(calc_col_stats(m_means[:, 1]))
-    print("F2")
-    print(calc_col_stats(f_means[:, 2]))
-    print(calc_col_stats(m_means[:, 2]))
-    print("F3")
-    print(calc_col_stats(f_means[:, 3]))
-    print(calc_col_stats(m_means[:, 3]))
-
     df = pd.DataFrame({headers[i]: f_means[:, i] for i in range(4)})
     dm = pd.DataFrame({headers[i]: m_means[:, i] for i in range(4)})
     args = dict(orient='h', scale='width', inner='quartile', linewidth=0.5)
@@ -315,6 +302,10 @@ def collect_visualize_freq():
     ax.set_xlabel('Frequency (Hz)')
     sns.despine(fig, ax)
     plt.show()
+
+    # Write JSON
+    data = {val: {'f': f_means[:, i].tolist(), 'm': m_means[:, i].tolist()} for i, val in enumerate(['Pitch', 'F1', 'F2', 'F3'])}
+    Path('results/frequency-data.json').write_text(json.dumps(data), 'utf-8')
 
 
 def collect_visualize_tilt():
@@ -358,9 +349,13 @@ def collect_visualize_tilt():
     sns.despine(fig, ax)
     plt.show()
 
+    # Write JSON
+    data = {'f': f_means.tolist(), 'm': m_means.tolist()}
+    Path('results/tilt-data.json').write_text(json.dumps(data), 'utf-8')
+
 
 if __name__ == '__main__':
-    vox_celeb_dir = Path('C:/Datasets/VoxCeleb1/wav')
+    vox_celeb_dir = Path('../Datasets/VoxCeleb1/wav')
     agab = load_vox_celeb_asab_dict(vox_celeb_dir.joinpath('../vox1_meta.csv'))
 
     ############
@@ -384,7 +379,7 @@ if __name__ == '__main__':
     # call_id_vox_celeb(combine_id_tilt)
 
     # 3. Collect statistics and draw visualizations
-    # collect_visualize_tilt()
+    collect_visualize_tilt()
 
     # print(calculate_freq_info(parselmouth.Sound('../00001.wav')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Extract-Z-44kHz.flac')))
