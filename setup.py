@@ -15,7 +15,7 @@ setup(
     install_requires=['praat-parselmouth', 'numpy', 'scipy'],
     url="https://github.com/hykilpikonna/SpeechGenderAnalysis",
     packages=['sgs'],
-    include_package_data=True,
+    package_data={'': ['vox1_data.json']},
     long_description=Path('README.md').read_text(),
     long_description_content_type='text/markdown',
     python_requires='>=3.8',
