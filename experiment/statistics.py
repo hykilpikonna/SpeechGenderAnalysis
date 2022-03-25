@@ -3,53 +3,29 @@ from __future__ import annotations
 import csv
 import json
 import os
-from dataclasses import dataclass
 from json import JSONDecodeError
 from multiprocessing import Pool
 from os import PathLike
 from pathlib import Path
 from typing import Iterable, Literal, Callable
+
 import jsonpickle as jsonpickle
 import matplotlib.pyplot as plt
 import numpy
 import numpy as np
 import pandas as pd
 import parselmouth
-import tqdm
 import seaborn as sns
+import tqdm
 from matplotlib.patches import Patch
 
-from spectral_tilt import tilt
+from calculations import calculate_tilt, calculate_freq_info, FrequencyStats, calc_col_stats, calculate_freq_statistics, \
+    Statistics
 
 ASAB = Literal['f', 'm']
 COLOR_PINK = '#F5A9B8'
 COLOR_BLUE = '#5BCEFA'
 CPU_CORES = 36
-
-
-def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndarray:
-    """
-    Calculate pitch and frequency
-
-    :param show_plot: Show pyplot plot or not
-    :param audio: Sound input
-    :return: 2D Array (Each row is 1/100 of a second, row[0] is pitch (fundamental frequency), row[1:4] is formant)
-    """
-    pitch_values = audio.to_pitch(0.01).selected_array['frequency']
-    formant_values = audio.to_formant_burg(0.01)
-    result = numpy.ndarray([len(pitch_values), 4], 'float32')
-
-    for i in range(len(pitch_values)):
-        pitch = pitch_values[i]
-        result[i][0] = pitch if pitch else None
-        for f in range(1, 4):
-            result[i][f] = formant_values.get_value_at_time(f, i / 100) if pitch else None
-
-    if show_plot:
-        plt.plot(result)
-        plt.show()
-
-    return result
 
 
 def load_vox_celeb_asab_dict(path: PathLike) -> dict[str, ASAB]:
@@ -119,7 +95,7 @@ def compute_audio_tilt(aud_dir: str):
     """
     Compute and save the tilt info of one audio file
     """
-    spectral_tilt = tilt(parselmouth.Sound(aud_dir))
+    spectral_tilt = calculate_tilt(parselmouth.Sound(aud_dir))
     with open(Path(aud_dir).with_suffix('.json'), 'w', encoding='utf-8') as f:
         json.dump({'tilt': spectral_tilt}, f)
 
@@ -144,59 +120,6 @@ def compute_audio_vox_celeb(func: Callable[[str], None]) -> None:
     with Pool(CPU_CORES) as pool:
         for _ in tqdm.tqdm(pool.imap(func, queue), total=len(queue)):
             pass
-
-
-@dataclass
-class FrequencyStats:
-    pitch: Statistics
-    f1: Statistics
-    f2: Statistics
-    f3: Statistics
-
-
-@dataclass
-class Statistics:
-    mean: float
-    median: float
-    q1: float
-    q3: float
-    iqr: float
-    min: float
-    max: float
-    n: int
-
-
-def calc_col_stats(col: np.ndarray) -> Statistics:
-    """
-    Compute statistics for a data column
-
-    :param col: Input column (tested on 1D array)
-    :return: Statistics
-    """
-    q1 = np.quantile(col, 0.25)
-    q3 = np.quantile(col, 0.75)
-    return Statistics(
-        float(np.mean(col)),
-        float(np.median(col)),
-        float(q1),
-        float(q3),
-        float(q3 - q1),
-        float(np.min(col)),
-        float(np.max(col)),
-        len(col)
-    )
-
-
-def calculate_freq_statistics(arr: np.ndarray) -> FrequencyStats:
-    """
-    Calculate frequency data array statistics
-
-    :param arr: n-by-4 Array from calculate_freq_info
-    :return: Statistics
-    """
-    result = [calc_col_stats(arr[:, i]) for i in range(0, 4)]
-
-    return FrequencyStats(*result)
 
 
 def combine_id_freq(id_dir: Path):
@@ -267,10 +190,10 @@ def collect_visualize_freq():
         stats_list.append((jsonpickle.decode(stats_dir.read_text()), agab[id]))
 
     # Get AFAB and AMAB means
-    headers = ['Pitch\n(Fundamental\nFrequency)', 'Formant F1', 'Formant F2', 'Formant F3', 'F1 Ratio', 'F2 Ratio', 'F3 Ratio']
-    f_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
+    headers = ['Pitch\n(Fundamental\nFrequency)', 'Formant F1', 'Formant F2', 'Formant F3']
+    f_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3]]
                         for s, ag in stats_list if ag == 'f'])
-    m_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3, s.f1ratio, s.f2ratio, s.f3ratio]]
+    m_means = np.array([[t.mean for t in [s.pitch, s.f1, s.f2, s.f3]]
                         for s, ag in stats_list if ag == 'm'])
 
     # Plot bar chart

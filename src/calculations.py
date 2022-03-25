@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
+
+import numpy
+import numpy as np
 import parselmouth
 
 
-def tilt(sound: parselmouth.Sound) -> float | None:
+def calculate_tilt(sound: parselmouth.Sound) -> float | None:
     """
     Compute spectral tilt
 
@@ -65,3 +69,82 @@ def tilt(sound: parselmouth.Sound) -> float | None:
     sXY = sumXY - ((sumX * sumY) / len(bins))
     spectral_tilt = sXY / sXX
     return spectral_tilt
+
+
+def calculate_freq_info(audio: parselmouth.Sound, show_plot=False) -> numpy.ndarray:
+    """
+    Calculate pitch and frequency
+
+    :param show_plot: Show pyplot plot or not
+    :param audio: Sound input
+    :return: 2D Array (Each row is 1/100 of a second, row[0] is pitch (fundamental frequency), row[1:4] is formant)
+    """
+    pitch_values = audio.to_pitch(0.01).selected_array['frequency']
+    formant_values = audio.to_formant_burg(0.01)
+    result = numpy.ndarray([len(pitch_values), 4], 'float32')
+
+    for i in range(len(pitch_values)):
+        pitch = pitch_values[i]
+        result[i][0] = pitch if pitch else None
+        for f in range(1, 4):
+            result[i][f] = formant_values.get_value_at_time(f, i / 100) if pitch else None
+
+    if show_plot:
+        import matplotlib.pyplot as plt
+        plt.plot(result)
+        plt.show()
+
+    return result
+
+
+@dataclass
+class FrequencyStats:
+    pitch: Statistics
+    f1: Statistics
+    f2: Statistics
+    f3: Statistics
+
+
+@dataclass
+class Statistics:
+    mean: float
+    median: float
+    q1: float
+    q3: float
+    iqr: float
+    min: float
+    max: float
+    n: int
+
+
+def calc_col_stats(col: np.ndarray) -> Statistics:
+    """
+    Compute statistics for a data column
+
+    :param col: Input column (tested on 1D array)
+    :return: Statistics
+    """
+    q1 = np.quantile(col, 0.25)
+    q3 = np.quantile(col, 0.75)
+    return Statistics(
+        float(np.mean(col)),
+        float(np.median(col)),
+        float(q1),
+        float(q3),
+        float(q3 - q1),
+        float(np.min(col)),
+        float(np.max(col)),
+        len(col)
+    )
+
+
+def calculate_freq_statistics(arr: np.ndarray) -> FrequencyStats:
+    """
+    Calculate frequency data array statistics
+
+    :param arr: n-by-4 Array from calculate_freq_info
+    :return: Statistics
+    """
+    result = [calc_col_stats(arr[:, i]) for i in range(0, 4)]
+
+    return FrequencyStats(*result)

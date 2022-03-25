@@ -1,7 +1,11 @@
+import json
+from pathlib import Path
+from typing import Literal
+
 from parselmouth import Sound
 from scipy.stats import gaussian_kde
 
-from statistics import *
+from calculations import calculate_freq_statistics, calculate_freq_info, calculate_tilt
 
 Feature = Literal['pitch', 'f1', 'f2', 'f3', 'tilt']
 Gender = Literal['f', 'm']
@@ -37,7 +41,7 @@ def load_kde() -> dict[Feature, dict[Gender, gaussian_kde]]:
 
 def calculate_feature_means(audio: Sound) -> dict[Feature, float]:
     s = calculate_freq_statistics(calculate_freq_info(audio))
-    return {'pitch': s.pitch.mean, 'f1': s.f1.mean, 'f2': s.f2.mean, 'f3': s.f3.mean, 'tilt': tilt(audio)}
+    return {'pitch': s.pitch.mean, 'f1': s.f1.mean, 'f2': s.f2.mean, 'f3': s.f3.mean, 'tilt': calculate_tilt(audio)}
 
 
 def _calculate_fem_prob(feature: Feature, value: float) -> float:
