@@ -1,12 +1,7 @@
-import json
-
-import matplotlib.pyplot as plt
-import numpy as np
 from parselmouth import Sound
 from scipy.stats import gaussian_kde
 
 from statistics import *
-
 
 Feature = Literal['pitch', 'f1', 'f2', 'f3', 'tilt']
 Gender = Literal['f', 'm']
@@ -15,7 +10,7 @@ Gender = Literal['f', 'm']
 _kde_functions: dict[Feature, dict[Gender, gaussian_kde]] = {}
 
 
-def load_kde():
+def load_kde() -> dict[Feature, dict[Gender, gaussian_kde]]:
     """
     Load statistical results into kernel density functions
 
