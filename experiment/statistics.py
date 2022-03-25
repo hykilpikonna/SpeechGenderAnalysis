@@ -223,7 +223,7 @@ def collect_visualize_freq():
 
     # Write JSON
     data = {val: {'f': f_means[:, i].tolist(), 'm': m_means[:, i].tolist()} for i, val in enumerate(['Pitch', 'F1', 'F2', 'F3'])}
-    Path('results/frequency-data.json').write_text(json.dumps(data), 'utf-8')
+    Path('results/vox1_data.json').write_text(json.dumps(data), 'utf-8')
 
 
 def collect_visualize_tilt():

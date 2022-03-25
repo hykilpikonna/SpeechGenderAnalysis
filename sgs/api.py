@@ -2,10 +2,11 @@ import json
 from pathlib import Path
 from typing import Literal
 
+import pkg_resources
 from parselmouth import Sound
 from scipy.stats import gaussian_kde
 
-from calculations import calculate_freq_statistics, calculate_freq_info, calculate_tilt
+from .calculations import calculate_freq_statistics, calculate_freq_info, calculate_tilt
 
 Feature = Literal['pitch', 'f1', 'f2', 'f3', 'tilt']
 Gender = Literal['f', 'm']
@@ -23,8 +24,8 @@ def load_kde() -> dict[Feature, dict[Gender, gaussian_kde]]:
     if _kde_functions:
         return _kde_functions
 
-    data: dict[Feature, dict[Gender, list[float]]] = {**json.loads(Path('results/frequency-data.json').read_text()),
-                                                      **json.loads(Path('results/tilt-data.json').read_text())}
+    data_file = pkg_resources.resource_filename(__name__, 'data/vox1_data.json')
+    data: dict[Feature, dict[Gender, list[float]]] = json.loads(Path(data_file).read_text())
 
     # Lowercase keys
     data = {k.lower(): data[k] for k in data}
