@@ -124,6 +124,7 @@ def calc_col_stats(col: np.ndarray) -> Statistics:
     :param col: Input column (tested on 1D array)
     :return: Statistics
     """
+    col = col[~numpy.isnan(col)]
     q1 = np.quantile(col, 0.25)
     q3 = np.quantile(col, 0.75)
     return Statistics(
