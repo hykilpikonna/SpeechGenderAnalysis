@@ -19,8 +19,11 @@ import seaborn as sns
 import tqdm
 from matplotlib.patches import Patch
 
-from calculations import calculate_tilt, calculate_freq_info, FrequencyStats, calc_col_stats, calculate_freq_statistics, \
+from sgs.calculations import calculate_tilt, calculate_freq_info, FrequencyStats, calc_col_stats, calculate_freq_statistics, \
     Statistics
+from scipy.stats import gaussian_kde
+
+import sgs
 
 ASAB = Literal['f', 'm']
 COLOR_PINK = '#F5A9B8'
@@ -223,7 +226,7 @@ def collect_visualize_freq():
 
     # Write JSON
     data = {val: {'f': f_means[:, i].tolist(), 'm': m_means[:, i].tolist()} for i, val in enumerate(['Pitch', 'F1', 'F2', 'F3'])}
-    Path('results/vox1_data.json').write_text(json.dumps(data), 'utf-8')
+    Path('results/frequency-data.json').write_text(json.dumps(data), 'utf-8')
 
 
 def collect_visualize_tilt():
@@ -272,6 +275,36 @@ def collect_visualize_tilt():
     Path('results/tilt-data.json').write_text(json.dumps(data), 'utf-8')
 
 
+def combine_results():
+    data = {**json.loads(Path('results/frequency-data.json').read_text()),
+            **json.loads(Path('results/tilt-data.json').read_text())}
+    data = {k.lower(): data[k] for k in data}
+    Path('results/vox1_data.json').write_text(json.dumps(data))
+
+
+def generate_js_data_curve(resolution: int = 50):
+    """
+    Generate KDE curve for JS visualization
+
+    :return: KDE curves
+    """
+    data = json.loads(Path('results/vox1_data.json').read_text())
+    data = {f.lower(): data[f] for f in data}
+    kdes = sgs.api.load_kde()
+    result = {}
+    for feature in kdes:
+        for gender in ['f', 'm']:
+            kde: gaussian_kde = kdes[feature][gender]
+            mi = min(data[feature][gender])
+            ma = max(data[feature][gender])
+            x = np.linspace(mi, ma, num=resolution)
+            y = kde.evaluate(x)
+            if feature not in result:
+                result[feature] = {}
+            result[feature][gender] = [[round(n, 1) for n in x], [round(n, 6) for n in y]]
+    Path('results/vox1_kde_curves.json').write_text(json.dumps(result))
+
+
 if __name__ == '__main__':
     vox_celeb_dir = Path('../Datasets/VoxCeleb1/wav')
     agab = load_vox_celeb_asab_dict(vox_celeb_dir.joinpath('../vox1_meta.csv'))
@@ -297,8 +330,10 @@ if __name__ == '__main__':
     # call_id_vox_celeb(combine_id_tilt)
 
     # 3. Collect statistics and draw visualizations
-    collect_visualize_tilt()
+    # collect_visualize_tilt()
 
     # print(calculate_freq_info(parselmouth.Sound('../00001.wav')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Extract-Z-44kHz.flac')))
     # print(calculate_freq_info(parselmouth.Sound('D:/Downloads/Vowels-Azalea.flac')))
+    combine_results()
+    generate_js_data_curve()
