@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import os
 from json import JSONDecodeError
 from multiprocessing import Pool
@@ -282,6 +283,13 @@ def combine_results():
     Path('results/vox1_data.json').write_text(json.dumps(data))
 
 
+def round_sig(x: float, sig: int = 2) -> float:
+    """
+    Round to significant figures
+    """
+    return round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
+
+
 def generate_js_data_curve(resolution: int = 50):
     """
     Generate KDE curve for JS visualization
@@ -301,7 +309,7 @@ def generate_js_data_curve(resolution: int = 50):
             y = kde.evaluate(x)
             if feature not in result:
                 result[feature] = {}
-            result[feature][gender] = [[round(n, 1) for n in x], [round(n, 6) for n in y]]
+            result[feature][gender] = [[round_sig(n, 4) for n in x], [round_sig(n, 4) for n in y]]
     Path('results/vox1_kde_curves.json').write_text(json.dumps(result))
 
 
