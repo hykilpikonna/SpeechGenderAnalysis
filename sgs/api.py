@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 import pkg_resources
 from parselmouth import Sound
 from scipy.stats import gaussian_kde
@@ -40,9 +41,16 @@ def load_kde() -> dict[Feature, dict[Gender, gaussian_kde]]:
     return _kde_functions
 
 
-def calculate_feature_means(audio: Sound) -> dict[Feature, float]:
-    s = calculate_freq_statistics(calculate_freq_info(audio))
-    return {'pitch': s.pitch.mean, 'f1': s.f1.mean, 'f2': s.f2.mean, 'f3': s.f3.mean, 'tilt': calculate_tilt(audio)}
+def calculate_feature_means(audio: Sound) -> tuple[dict[Feature, float], np.ndarray]:
+    """
+    Calculate frequency info and feature means
+
+    :param audio: Audio
+    :return: means, frequency array
+    """
+    freq_info = calculate_freq_info(audio)
+    s = calculate_freq_statistics(freq_info)
+    return {'pitch': s.pitch.mean, 'f1': s.f1.mean, 'f2': s.f2.mean, 'f3': s.f3.mean, 'tilt': calculate_tilt(audio)}, freq_info
 
 
 def _calculate_fem_prob(feature: Feature, value: float) -> float:
@@ -56,13 +64,13 @@ def _calculate_fem_prob(feature: Feature, value: float) -> float:
     return f / (f + m)
 
 
-def calculate_feature_classification(audio: Sound):
+def calculate_feature_classification(audio: Sound) -> tuple[dict[Literal['means', 'fem_prob'], dict[Feature, float]], np.ndarray]:
     """
     Run statistical classification based on kernel density estimation.
 
     :param audio: Audio
-    :return: Statistical results {'means': {'pitch': ..., 'f1': ...}, 'fem_prob': {'pitch': ..., 'f1': ...}}
+    :return: Statistical results {'means': {'pitch': ..., 'f1': ...}, 'fem_prob': {'pitch': ..., 'f1': ...}}, and frequency array
     """
-    means = calculate_feature_means(audio)
+    means, freq_array = calculate_feature_means(audio)
     fem_prob = {feature: _calculate_fem_prob(feature, means[feature]) for feature in means}
-    return {'means': means, 'fem_prob': fem_prob}
+    return {'means': means, 'fem_prob': fem_prob}, freq_array
