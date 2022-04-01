@@ -51,12 +51,19 @@ python -c "from tensorflow.python.client import device_lib; print(device_lib.lis
 
 ### Arch Linux (CUDA)
 
+#### Install CUDA
+
+```shell
+yay -S downgrade
+sudo pacman -S tensorflow-cuda
+sudo downgrade 'cuda=11.2.2' 'cudnn=8.1.1.33'
+```
+
 #### Python (3.9.11)
 
 ```sh
 python -m venv venv
 source ./venv/bin/activate
 pip install -r requirements-win-cuda.txt
-sudo pacman -S tensorflow-cuda
 python -c "from tensorflow.python.client import device_lib; print(device_lib.list_local_devices())"
 ```
