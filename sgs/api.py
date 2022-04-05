@@ -16,6 +16,7 @@ Gender = Literal['f', 'm']
 
 
 _kde_functions: dict[Feature, dict[Gender, gaussian_kde]] = {}
+_kde_boundaries: dict[Feature, tuple[float, float]] = {}
 
 
 def load_kde() -> dict[Feature, dict[Gender, gaussian_kde]]:
@@ -34,11 +35,16 @@ def load_kde() -> dict[Feature, dict[Gender, gaussian_kde]]:
     data = {k.lower(): data[k] for k in data}
 
     # Fit KDE functions
+    # Also find boundaries (99th percentile for fem and 1st percentile for masc)
     for feature in data:
         _kde_functions[feature] = {}
         for gender in data[feature]:
             kde = gaussian_kde(data[feature][gender], 'scott')
             _kde_functions[feature][gender] = kde
+
+        # Boundaries
+        _kde_boundaries[feature] = (np.percentile(data[feature]['m'], 1),
+                                    np.percentile(data[feature]['f'], 99))
 
     return _kde_functions
 
@@ -63,6 +69,14 @@ def _calculate_fem_prob(feature: Feature, value: float) -> float:
     """
     f = load_kde()[feature]['f'].evaluate([value])[0]
     m = load_kde()[feature]['m'].evaluate([value])[0]
+
+    # Boundaries
+    m1, f99 = _kde_boundaries[feature]
+    if value > f99:
+        return 1
+    if value < m1:
+        return 0
+
     return f / (f + m)
 
 
