@@ -1,10 +1,11 @@
 import json
 
 if __name__ == '__main__':
-    with open('C:\Workspace\EECS 6414\Datasets\CN-Celeb_flac\id_labels.json', 'r', encoding='UTF-8') as f:
+
+    with open(r'C:\Datasets\CN-Celeb_flac\id_labels.json', 'r', encoding='UTF-8') as f:
         labels = json.load(f)
 
-    with open('C:\Workspace\EECS 6414\Datasets\CN-Celeb_flac\ina_pf_map.json', 'r', encoding='UTF-8') as f:
+    with open(r'C:\Datasets\CN-Celeb_flac\ina_pf_map.json', 'r', encoding='UTF-8') as f:
         pf = json.load(f)
 
     correct_f = []
@@ -19,15 +20,15 @@ if __name__ == '__main__':
 
         if labels[k] == 'f':
             if pf[k] > 0.5:
-                correct_f += k
+                correct_f.append(k)
             else:
-                incorrect_f += k
+                incorrect_f.append(k)
 
         if labels[k] == 'm':
             if pf[k] < 0.5:
-                correct_m += k
+                correct_m.append(k)
             else:
-                incorrect_m += k
+                incorrect_m.append(k)
 
     print('Done Reading\n')
 
