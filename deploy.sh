@@ -5,6 +5,7 @@ set -e
 
 # Remove old build
 rm -rf dist/*
+rm -rf build/*
 
 # Build
 python setup.py sdist bdist_wheel
