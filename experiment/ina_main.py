@@ -14,14 +14,18 @@ import numpy as np
 import scipy.io.wavfile
 from PIL import Image
 from inaSpeechSegmenter import *
-from inaSpeechSegmenter.segmenter import featGenerator
-from matplotlib.figure import Figure, Axes
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+
+
+seg = Segmenter()
 
 
 class ResultFrame(NamedTuple):
     gender: str
     start: float
     end: float
+    prob: float
 
 
 class Result(NamedTuple):
@@ -29,37 +33,8 @@ class Result(NamedTuple):
     file: str
 
 
-class BatchResults(NamedTuple):
-    results: list[Result]
-    time_full: float
-    time_avg: float
-    successes: int
-    messages: list[tuple[str, int]]
-
-
-def process(self: Segmenter, inp: list[str], tmpdir=None, verbose=False, skip_if_exist=False,
-            nbtry=1, try_delay=2.) -> BatchResults:
-    t_batch_start = time.time()
-
-    results: list[Result] = []
-    lmsg = []
-    fg = featGenerator(inp.copy(), inp.copy(), tmpdir, self.ffmpeg, skip_if_exist, nbtry, try_delay)
-    i = 0
-    for feats, msg in fg:
-        lmsg += msg
-        i += len(msg)
-        if verbose:
-            print('%d/%d' % (i, len(inp)), msg)
-        if feats is None:
-            break
-        mspec, loge, diff_len = feats
-        lseg = self.segment_feats(mspec, loge, diff_len, 0)
-        results.append(Result([ResultFrame(*s) for s in lseg], inp[len(lmsg) - 1]))
-
-    t_batch_dur = time.time() - t_batch_start
-    nb_processed = len([e for e in lmsg if e[1] == 0])
-    avg = t_batch_dur / nb_processed if nb_processed else -1
-    return BatchResults(results, t_batch_dur, avg, nb_processed, lmsg)
+def segment(file) -> list[ResultFrame]:
+    return [ResultFrame(*s) for s in seg(file)]
 
 
 def to_wav(file: str, callback: Callable, start_sec: float = 0, stop_sec: float = 0):
@@ -94,7 +69,7 @@ def show_image_buffer(buf):
     buf.close()
 
 
-def draw_result(file: str, result: Result):
+def draw_result(file: str, result: list[ResultFrame]):
     """
     Draw segmentation result
 
@@ -119,11 +94,11 @@ def draw_result(file: str, result: Result):
         # Cutoff frequency so that the plot looks centered
         cutoff = min(abs(min(audio)), abs(max(audio)))
         ax.set_ylim([-cutoff, cutoff])
-        ax.set_xlim([result.frames[0].start, result.frames[-1].end])
+        ax.set_xlim([result[0].start, result[-1].end])
 
         # Draw segmentation areas
         colors = {'female': '#F5A9B8', 'male': '#5BCEFA', 'default': 'gray'}
-        for r in result.frames:
+        for r in result:
             color = colors[r.gender] if r.gender in colors else colors['default']
             ax.axvspan(r.start, r.end - 0.01, alpha=.5, color=color)
 
@@ -139,7 +114,7 @@ def draw_result(file: str, result: Result):
     return to_wav(file, wav_callback)
 
 
-def get_result_percentages(result: Result) -> tuple[float, float, float, float]:
+def get_result_percentages(result: list[ResultFrame]) -> tuple[float, float, float, float]:
     """
     Get percentages
 
@@ -148,8 +123,8 @@ def get_result_percentages(result: Result) -> tuple[float, float, float, float]:
     """
     # Count total and categorical durations
     total_dur = 0
-    durations: dict[str, int] = {f.gender: 0 for f in result.frames}
-    for f in result.frames:
+    durations: dict[str, int] = {f.gender: 0 for f in result}
+    for f in result:
         dur = f.end - f.start
         durations[f.gender] += dur
         total_dur += dur
@@ -176,11 +151,10 @@ def test():
     #     [('../test.csv', 0)])
 
     warnings.filterwarnings("ignore")
-    seg = Segmenter()
     audio_file = '../test.flac'
 
     # Warmup run
-    results = process(seg, [audio_file])
+    results = segment(audio_file)
     print(results)
 
     # # Actual run
@@ -188,18 +162,18 @@ def test():
     # print(results)
 
     # Benchmark
-    iterations = 60
-    total_time = 0
-    audio_len = float(subprocess.getoutput(f'ffprobe -i {audio_file} -show_entries format=duration -v quiet -of csv="p=0"'))
-    print(f'Audio length: {audio_len}')
-
-    for i in range(iterations):
-        results = process(seg, [audio_file])
-        total_time += results.time_full
-
-    time_per_second = total_time / iterations / audio_len
-    print(f'Benchmark result: {total_time}s / {iterations} iterations = {time_per_second} seconds of processing per second in audio')
-    print(f'Score: {1 / time_per_second}')
+    # iterations = 60
+    # total_time = 0
+    # audio_len = float(subprocess.getoutput(f'ffprobe -i {audio_file} -show_entries format=duration -v quiet -of csv="p=0"'))
+    # print(f'Audio length: {audio_len}')
+    #
+    # for i in range(iterations):
+    #     results = process(seg, [audio_file])
+    #     total_time += results.time_full
+    #
+    # time_per_second = total_time / iterations / audio_len
+    # print(f'Benchmark result: {total_time}s / {iterations} iterations = {time_per_second} seconds of processing per second in audio')
+    # print(f'Score: {1 / time_per_second}')
 
     # Draw results
     # with draw_result(audio_file, results.results[0]) as buf:

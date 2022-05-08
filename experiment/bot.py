@@ -39,12 +39,11 @@ def process_audio(message: Message):
     downloader.download(file)
 
     # Segment file
-    seg = Segmenter()
-    result = process(seg, [str(file.absolute())]).results[0]
+    result = segment(file)
 
     # Null case
-    print(result.frames)
-    if len(result.frames) == 0:
+    print(result)
+    if len(result) == 0:
         bot.send_message(message.chat_id, '分析失败, 大概是音量太小或者时长太短吧, 再试试w')
         return
 
