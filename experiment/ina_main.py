@@ -38,8 +38,53 @@ class Result(NamedTuple):
     file: str
 
 
-def segment(file) -> list[ResultFrame]:
-    return [ResultFrame(*s) for s in seg(file)]
+class BatchResults(NamedTuple):
+    results: list[Result]
+    time_full: float
+    time_avg: float
+    successes: int
+    messages: list[tuple[str, int]]
+
+
+def _process_helper(args: tuple[Segmenter, str]) -> Result:
+    seg, f = args
+    lseg = seg(f)
+    return Result([ResultFrame(*s) for s in lseg], f)
+
+
+def process(self: Segmenter, inp: list[str], tmpdir=None, verbose=False, skip_if_exist=False,
+            nbtry=1, try_delay=2.) -> list[Result]:
+    from tqdm.contrib.concurrent import process_map
+    import tqdm
+    results = []
+    for i in tqdm.tqdm(inp):
+        results.append(_process_helper((self, i)))
+    return results
+
+    # return process_map(_process_helper, [(self, i) for i in inp], max_workers=2)
+
+    #
+    # t_batch_start = time.time()
+    #
+    # results: list[Result] = []
+    # lmsg = []
+    # fg = featGenerator(inp.copy(), inp.copy(), tmpdir, self.ffmpeg, skip_if_exist, nbtry, try_delay)
+    # i = 0
+    # for feats, msg in fg:
+    #     lmsg += msg
+    #     i += len(msg)
+    #     if verbose:
+    #         print('%d/%d' % (i, len(inp)), msg)
+    #     if feats is None:
+    #         break
+    #     mspec, loge, diff_len = feats
+    #     lseg = self.segment_feats(mspec, loge, diff_len, 0)
+    #     results.append()
+    #
+    # t_batch_dur = time.time() - t_batch_start
+    # nb_processed = len([e for e in lmsg if e[1] == 0])
+    # avg = t_batch_dur / nb_processed if nb_processed else -1
+    # return BatchResults(results, t_batch_dur, avg, nb_processed, lmsg)
 
 
 def to_wav(file: str, callback: Callable, start_sec: float = 0, stop_sec: float = 0):

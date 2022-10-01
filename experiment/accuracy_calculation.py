@@ -8,6 +8,8 @@ if __name__ == '__main__':
     with open(r'C:\Datasets\CN-Celeb_flac\ina_pf_map.json', 'r', encoding='UTF-8') as f:
         pf = json.load(f)
 
+    print(len(labels))
+
     correct_f = []
     correct_m = []
     incorrect_f = []
